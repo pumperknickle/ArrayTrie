@@ -3,7 +3,7 @@ import Testing
 import Collections
 @testable import ArrayTrie // Replace with your actual module name
 
-final class ArrayTrieTests: XCTestCase {
+@Suite struct ArrayTrieTests {
     
     // MARK: - Empty Trie Tests
     
@@ -228,45 +228,6 @@ final class ArrayTrieTests: XCTestCase {
         
         // Verify the nested value
         XCTAssertEqual(retrievedTrie?.get(["nested", "path"]), "Nested Value")
-    }
-    
-    // MARK: - Performance Tests
-    
-    @Test func testPerformanceSetAndGet() {
-        measure {
-            var trie = ArrayTrie<String>()
-            
-            // Insert 1000 paths
-            for i in 0..<1000 {
-                let path = ["level1", "level2", "item\(i)"]
-                trie.set(path, value: "Value \(i)")
-            }
-            
-            // Retrieve 1000 paths
-            for i in 0..<1000 {
-                let path = ["level1", "level2", "item\(i)"]
-                _ = trie.get(path)
-            }
-        }
-    }
-    
-    @Test func testPerformanceTraversal() {
-        var trie = ArrayTrie<String>()
-        
-        // Set up the trie with a deep structure
-        for i in 0..<100 {
-            let path = ["level1", "level2", "level3", "level4", "item\(i)"]
-            trie.set(path, value: "Value \(i)")
-        }
-        
-        measure {
-            // Traverse to various levels 1000 times
-            for _ in 0..<1000 {
-                _ = trie.traverse(["level1"])
-                _ = trie.traverse(["level1", "level2"])
-                _ = trie.traverse(["level1", "level2", "level3"])
-            }
-        }
     }
     
     // MARK: - Edge Cases
