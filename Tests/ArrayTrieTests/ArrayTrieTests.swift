@@ -9,8 +9,8 @@ import Collections
     
     @Test func testEmptyTrie() {
         let trie = ArrayTrie<String>()
-        XCTAssertTrue(trie.isEmpty())
-        XCTAssertNil(trie.get(["nonexistent"]))
+        #expect(trie.isEmpty())
+        #expect(trie.get(["nonexistent"]) == nil)
     }
     
     // MARK: - Basic Operations Tests
@@ -22,12 +22,12 @@ import Collections
         trie.set(["users", "john"], value: "John Doe")
         
         // Verify the value can be retrieved
-        XCTAssertEqual(trie.get(["users", "john"]), "John Doe")
+        #expect(trie.get(["users", "john"]) == "John Doe")
         
         // Verify non-existent paths return nil
-        XCTAssertNil(trie.get(["users", "jane"]))
-        XCTAssertNil(trie.get(["users"]))
-        XCTAssertNil(trie.get(["admins", "john"]))
+        #expect(trie.get(["users", "jane"]) == nil)
+        #expect(trie.get(["users"]) == nil)
+        #expect(trie.get(["admins", "john"]) == nil)
     }
     
     @Test func testSetOverwrite() {
@@ -35,11 +35,11 @@ import Collections
         
         // Set initial value
         trie.set(["users", "john"], value: "John Doe")
-        XCTAssertEqual(trie.get(["users", "john"]), "John Doe")
+        #expect(trie.get(["users", "john"]) == "John Doe")
         
         // Overwrite the value
         trie.set(["users", "john"], value: "Johnny")
-        XCTAssertEqual(trie.get(["users", "john"]), "Johnny")
+        #expect(trie.get(["users", "john"]) == "Johnny")
     }
     
     @Test func testMultiplePaths() {
@@ -51,9 +51,9 @@ import Collections
         trie.set(["admins", "bob"], value: "Bob Admin")
         
         // Verify all values can be retrieved
-        XCTAssertEqual(trie.get(["users", "john"]), "John Doe")
-        XCTAssertEqual(trie.get(["users", "jane"]), "Jane Smith")
-        XCTAssertEqual(trie.get(["admins", "bob"]), "Bob Admin")
+        #expect(trie.get(["users", "john"]) == "John Doe")
+        #expect(trie.get(["users", "jane"]) == "Jane Smith")
+        #expect(trie.get(["admins", "bob"]) == "Bob Admin")
     }
     
     @Test func testEmptyPath() {
@@ -61,7 +61,7 @@ import Collections
         
         // Empty path should do nothing
         trie.set([], value: "Root")
-        XCTAssertNil(trie.get([]))
+        #expect(trie.get([]) == nil)
     }
     
     // MARK: - Deletion Tests
@@ -77,12 +77,12 @@ import Collections
         let newTrie = trie.deleting(path: ["users", "john"])
         
         // Original trie should be unchanged
-        XCTAssertEqual(trie.get(["users", "john"]), "John Doe")
-        XCTAssertEqual(trie.get(["users", "jane"]), "Jane Smith")
+        #expect(trie.get(["users", "john"]) == "John Doe")
+        #expect(trie.get(["users", "jane"]) == "Jane Smith")
         
         // New trie should have the path deleted
-        XCTAssertNil(newTrie.get(["users", "john"]))
-        XCTAssertEqual(newTrie.get(["users", "jane"]), "Jane Smith")
+        #expect(newTrie.get(["users", "john"]) == nil)
+        #expect(newTrie.get(["users", "jane"]) == "Jane Smith")
     }
     
     @Test func testDeletionNonExistent() {
@@ -95,7 +95,7 @@ import Collections
         let newTrie = trie.deleting(path: ["users", "jane"])
         
         // Trie should be unchanged
-        XCTAssertEqual(newTrie.get(["users", "john"]), "John Doe")
+        #expect(newTrie.get(["users", "john"]) == "John Doe")
     }
     
     @Test func testDeletionEmptyPath() {
@@ -108,7 +108,7 @@ import Collections
         let newTrie = trie.deleting(path: [])
         
         // Trie should be unchanged
-        XCTAssertEqual(newTrie.get(["users", "john"]), "John Doe")
+        #expect(newTrie.get(["users", "john"]) == "John Doe")
     }
     
     // MARK: - Traversal Tests
@@ -125,11 +125,11 @@ import Collections
         let subtrie = trie.traverse(["users", "john"])
         
         // Verify the subtrie contains the expected values
-        XCTAssertNotNil(subtrie)
+        #expect(subtrie != nil)
         if let subtrie = subtrie {
-            XCTAssertEqual(subtrie.get(["profile"]), "John's Profile")
-            XCTAssertEqual(subtrie.get(["settings"]), "John's Settings")
-            XCTAssertNil(subtrie.get(["nonexistent"]))
+            #expect(subtrie.get(["profile"]) == "John's Profile")
+            #expect(subtrie.get(["settings"]) == "John's Settings")
+            #expect(subtrie.get(["nonexistent"]) == nil)
         }
     }
     
@@ -143,7 +143,7 @@ import Collections
         let subtrie = trie.traverse(["users", "jane"])
         
         // Verify the subtrie is nil
-        XCTAssertNil(subtrie)
+        #expect(subtrie == nil)
     }
     
     @Test func testTraversalEmptyPath() {
@@ -156,9 +156,9 @@ import Collections
         let subtrie = trie.traverse([])
         
         // Verify the subtrie is the same as the original trie
-        XCTAssertNotNil(subtrie)
+        #expect(subtrie != nil)
         if let subtrie = subtrie {
-            XCTAssertEqual(subtrie.get(["users", "john"]), "John Doe")
+            #expect(subtrie.get(["users", "john"]) == "John Doe")
         }
     }
     
@@ -176,10 +176,10 @@ import Collections
         trie.set(["users"], value: "All Users")
         
         // Verify all values are correctly stored
-        XCTAssertEqual(trie.get(["users"]), "All Users")
-        XCTAssertEqual(trie.get(["users", "john", "profile"]), "John's Profile")
-        XCTAssertEqual(trie.get(["users", "john", "settings"]), "John's Settings")
-        XCTAssertEqual(trie.get(["users", "jane"]), "Jane Smith")
+        #expect(trie.get(["users"]) == "All Users")
+        #expect(trie.get(["users", "john", "profile"]) == "John's Profile")
+        #expect(trie.get(["users", "john", "settings"]) == "John's Settings")
+        #expect(trie.get(["users", "jane"]) == "Jane Smith")
     }
     
     @Test func testCommonPrefixHandling() {
@@ -192,8 +192,8 @@ import Collections
         trie.set(["users", "johnathan"], value: "Johnathan's Data")
         
         // Verify both values are correctly stored
-        XCTAssertEqual(trie.get(["users", "john", "profile"]), "John's Profile")
-        XCTAssertEqual(trie.get(["users", "johnathan"]), "Johnathan's Data")
+        #expect(trie.get(["users", "john", "profile"]) == "John's Profile")
+        #expect(trie.get(["users", "johnathan"]) == "Johnathan's Data")
     }
     
     @Test func testDifferentValueTypes() {
@@ -207,9 +207,9 @@ import Collections
         boolTrie.set(["test"], value: true)
         
         // Verify the values
-        XCTAssertEqual(stringTrie.get(["test"]), "String Value")
-        XCTAssertEqual(intTrie.get(["test"]), 42)
-        XCTAssertEqual(boolTrie.get(["test"]), true)
+        #expect(stringTrie.get(["test"]) == "String Value")
+        #expect(intTrie.get(["test"]) == 42)
+        #expect(boolTrie.get(["test"]) == true)
     }
     
     @Test func testNestedArrayTrieHandling() {
@@ -224,10 +224,10 @@ import Collections
         
         // Retrieve the nested trie
         let retrievedTrie = trie.get(["parent"])
-        XCTAssertNotNil(retrievedTrie)
+        #expect(retrievedTrie != nil)
         
         // Verify the nested value
-        XCTAssertEqual(retrievedTrie?.get(["nested", "path"]), "Nested Value")
+        #expect(retrievedTrie?.get(["nested", "path"]) == "Nested Value")
     }
     
     // MARK: - Edge Cases
@@ -236,8 +236,8 @@ import Collections
         let emptyMap = TreeDictionary<String, ArrayTrieNode<String>>()
         let trie = ArrayTrie<String>(children: emptyMap)
         
-        XCTAssertTrue(trie.isEmpty())
-        XCTAssertNil(trie.get(["any", "path"]))
+        #expect(trie.isEmpty())
+        #expect(trie.get(["any", "path"]) == nil)
     }
     
     @Test func testLongPathHandling() {
@@ -248,7 +248,7 @@ import Collections
         trie.set(longPath, value: "Deep Value")
         
         // Verify it can be retrieved
-        XCTAssertEqual(trie.get(longPath), "Deep Value")
+        #expect(trie.get(longPath) == "Deep Value")
     }
     
     // MARK: - ArraySlice Extension Tests
@@ -259,7 +259,7 @@ import Collections
         
         let commonPrefix = array1.longestCommonPrefix(array2)
         
-        XCTAssertEqual(commonPrefix, ["a", "b"])
+        #expect(commonPrefix == ["a", "b"])
     }
     
     @Test func testLongestCommonPrefixEmpty() {
@@ -268,7 +268,7 @@ import Collections
         
         let commonPrefix = array1.longestCommonPrefix(array2)
         
-        XCTAssertEqual(commonPrefix, [])
+        #expect(commonPrefix == [])
     }
     
     @Test func testLongestCommonPrefixNoMatch() {
@@ -286,6 +286,6 @@ import Collections
         
         let commonPrefix = array1.longestCommonPrefix(array2)
         
-        XCTAssertEqual(commonPrefix, ["a", "b", "c"])
+        #expect(commonPrefix == ["a", "b", "c"])
     }
 }
