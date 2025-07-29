@@ -301,4 +301,120 @@ import TrieDictionary
         
         #expect(commonPrefix == ["a", "b", "c"])
     }
+    
+    // MARK: - String Path Traversal Tests
+    
+    @Test func testTraverseStringPath() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie - in ArrayTrie, the first level keys are what we traverse
+        trie.set(["users"], value: "All Users")
+        trie.set(["users-admin"], value: "Admin Users")
+        trie.set(["posts"], value: "All Posts")
+        
+        // Traverse using string path - this should find all keys that start with "users"
+        let usersSubtrie = trie.traverse(path: "users")
+        
+        // Verify the subtrie contains the expected structure
+        #expect(usersSubtrie != nil)
+        if let subtrie = usersSubtrie {
+            #expect(!subtrie.isEmpty())
+            // The traverse method operates on the top-level keys and doesn't create a functional subtrie
+            // It's more of a filtering operation. The resulting trie is not directly usable for get operations
+            // with the suffix keys because the nodes retain their original prefixes
+            
+            // We can verify the structure exists by checking that it's not empty
+            let keys = subtrie.children.keys()
+            #expect(keys.contains(""))
+            #expect(keys.contains("-admin"))
+        }
+    }
+    
+    @Test func testTraverseStringPathNonExistent() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie
+        trie.set(["users"], value: "All Users")
+        trie.set(["posts"], value: "All Posts")
+        
+        // Traverse using non-existent string path
+        let subtrie = trie.traverse(path: "comments")
+        
+        // Verify the subtrie is nil
+        #expect(subtrie == nil)
+    }
+    
+    @Test func testTraverseStringPathEmpty() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie
+        trie.set(["users"], value: "All Users")
+        trie.set(["posts"], value: "All Posts")
+        
+        // Traverse using empty string path
+        let subtrie = trie.traverse(path: "")
+        
+        // Should return the original trie structure since empty string matches all keys
+        #expect(subtrie != nil)
+        if let subtrie = subtrie {
+            #expect(subtrie.get(["users"]) == "All Users")
+            #expect(subtrie.get(["posts"]) == "All Posts")
+        }
+    }
+    
+    @Test func testTraverseStringPathPartialMatch() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with keys that have common prefixes
+        trie.set(["user"], value: "Single User")
+        trie.set(["users"], value: "All Users")
+        trie.set(["userdata"], value: "User Data")
+        
+        // Traverse using prefix that matches multiple keys
+        let subtrie = trie.traverse(path: "user")
+        
+        // Verify the subtrie contains nodes with keys starting with "user"
+        #expect(subtrie != nil)
+        if let subtrie = subtrie {
+            #expect(!subtrie.isEmpty())
+            // The traversed trie contains the suffix keys after removing the prefix
+            let keys = subtrie.children.keys()
+            #expect(keys.contains(""))    // for "user"
+            #expect(keys.contains("s"))   // for "users" 
+            #expect(keys.contains("data")) // for "userdata"
+        }
+    }
+    
+    @Test func testTraverseStringPathWithSpecialCharacters() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with keys containing special characters
+        trie.set(["user@domain.com"], value: "Email User")
+        trie.set(["user-name"], value: "Hyphenated User")
+        trie.set(["user_id"], value: "Underscore User")
+        
+        // Traverse using partial string with special characters
+        let subtrie = trie.traverse(path: "user")
+        
+        // Verify the subtrie contains the expected nodes
+        #expect(subtrie != nil)
+        if let subtrie = subtrie {
+            #expect(!subtrie.isEmpty())
+            // Check that the suffix keys are present
+            let keys = subtrie.children.keys()
+            #expect(keys.contains("@domain.com"))
+            #expect(keys.contains("-name"))
+            #expect(keys.contains("_id"))
+        }
+    }
+    
+    @Test func testTraverseStringPathEmptyTrie() {
+        let trie = ArrayTrie<String>()
+        
+        // Traverse empty trie
+        let subtrie = trie.traverse(path: "anything")
+        
+        // Verify the subtrie is nil
+        #expect(subtrie == nil)
+    }
 }

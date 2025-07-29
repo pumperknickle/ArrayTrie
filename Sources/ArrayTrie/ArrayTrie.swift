@@ -111,6 +111,11 @@ public struct ArrayTrie<Value> {
         guard let childNode = children[firstKey] else { return self }
         return with(child: firstKey, node: childNode.deleting(ArraySlice(path)))
     }
+    
+    public func traverse(path: String) -> Self? {
+        let traversed = children.traverse(path)
+        return traversed.isEmpty ? nil : Self(children: traversed)
+    }
 }
 
 /**
