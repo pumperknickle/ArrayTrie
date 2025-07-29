@@ -1,13 +1,13 @@
 {
-  "originHash" : "0bfd1b1466759d79d24835f53efd9663eb196ae801c1e8831a74494286547c1a",
+  "originHash" : "ea9ed061d5f98d2e4dc8e66dff33eb169b33b6ce4101ef327b43af2358dc940e",
   "pins" : [
     {
-      "identity" : "swift-collections",
+      "identity" : "triedictionary",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-collections.git",
+      "location" : "https://github.com/pumperknickle/TrieDictionary.git",
       "state" : {
-        "revision" : "671108c96644956dddcd89dd59c203dcdb36cec7",
-        "version" : "1.1.4"
+        "revision" : "652637a22cbb8cfcec05b52c77eddfa521015c45",
+        "version" : "0.0.1"
       }
     }
   ],

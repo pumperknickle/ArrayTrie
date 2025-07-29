@@ -1,7 +1,7 @@
 import XCTest
 import Testing
-import Collections
-@testable import ArrayTrie // Replace with your actual module name
+import TrieDictionary
+@testable import ArrayTrie
 
 @Suite struct ArrayTrieTests {
     
@@ -146,6 +146,19 @@ import Collections
         #expect(subtrie == nil)
     }
     
+    @Test func testTraversalPath() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie
+        trie.set(["users", "john"], value: "John Doe")
+        
+        // Traverse to a non-existent path
+        let subtrie = trie.traverse(["users", "john"])
+        
+        // Verify the subtrie is nil
+        #expect(subtrie!.isEmpty())
+    }
+    
     @Test func testTraversalEmptyPath() {
         var trie = ArrayTrie<String>()
         
@@ -233,7 +246,7 @@ import Collections
     // MARK: - Edge Cases
     
     @Test func testEmptyChildren() {
-        let emptyMap = TreeDictionary<String, ArrayTrieNode<String>>()
+        let emptyMap = TrieDictionary<ArrayTrieNode<String>>()
         let trie = ArrayTrie<String>(children: emptyMap)
         
         #expect(trie.isEmpty())
@@ -277,7 +290,7 @@ import Collections
         
         let commonPrefix = array1.longestCommonPrefix(array2)
         
-        XCTAssertEqual(commonPrefix, [])
+        #expect(commonPrefix == [])
     }
     
     @Test func testLongestCommonPrefixFullMatch() {

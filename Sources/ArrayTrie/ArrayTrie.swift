@@ -1,4 +1,4 @@
-import Collections
+import TrieDictionary
 
 /**
  * ArrayTrie - A trie data structure implementation that uses arrays of strings as keys.
@@ -8,7 +8,7 @@ import Collections
 public struct ArrayTrie<Value> {
     /// Type aliases for cleaner code
     typealias Node = ArrayTrieNode<Value>
-    typealias ChildMap = Node.ChildMap
+    typealias ChildMap = TrieDictionary<ArrayTrieNode<Value>>
     
     /// Dictionary of child nodes, keyed by string
     var children: ChildMap
@@ -25,7 +25,7 @@ public struct ArrayTrie<Value> {
      * Creates an empty ArrayTrie with no children.
      */
     public init() {
-        self = Self(children: ChildMap())
+        self = Self(children: [:])
     }
     
     /**
@@ -50,11 +50,7 @@ public struct ArrayTrie<Value> {
      * @param node The new node value, or nil to remove the child
      */
     mutating func updateChild(_ key: String, _ node: Node?) {
-        guard let node = node else {
-            children.removeValue(forKey: key)
-            return
-        }
-        children.updateValue(node, forKey: key)
+        children[key] = node
     }
     
     /**
@@ -64,14 +60,9 @@ public struct ArrayTrie<Value> {
      * @return A new trie with the specified child added, updated, or removed
      */
     func with(child: String, node: Node?) -> Self {
-        if let node = node {
-            var copy = children
-            copy.updateValue(node, forKey: child)
-            return Self(children: copy)
-        }
-        var copy = children
-        copy.removeValue(forKey: child)
-        return Self(children: copy)
+        var newChildren = children
+        newChildren[child] = node
+        return Self(children: newChildren)
     }
     
     /**
@@ -104,7 +95,7 @@ public struct ArrayTrie<Value> {
     public mutating func set(_ path: [String], value: Value) {
         guard let firstKey = path.first else { return }
         if children[firstKey] == nil {
-            updateChild(firstKey, Node(prefix: path, value: value, children: ChildMap()))
+            updateChild(firstKey, Node(prefix: path, value: value, children: [:]))
             return
         }
         children[firstKey]!.set(keys: ArraySlice(path), to: value)
@@ -126,9 +117,9 @@ public struct ArrayTrie<Value> {
  * ArrayTrieNode - A node in the ArrayTrie structure.
  * Each node contains a prefix path, an optional value, and child nodes.
  */
-struct ArrayTrieNode<Value> {
-    /// Type alias for the children map, using TreeDictionary for efficient storage
-    typealias ChildMap = TreeDictionary<String, Self>
+final class ArrayTrieNode<Value> {
+    /// Type alias for the children map
+    typealias ChildMap = TrieDictionary<ArrayTrieNode<Value>>
     
     /// The prefix path segments leading to this node
     var prefix: [String]!
@@ -140,11 +131,20 @@ struct ArrayTrieNode<Value> {
     var children: ChildMap
     
     /**
+     * Initializes a node with the given prefix, value, and children.
+     */
+    init(prefix: [String], value: Value?, children: ChildMap) {
+        self.prefix = prefix
+        self.value = value
+        self.children = children
+    }
+    
+    /**
      * Retrieves a child node by key.
      * @param key The key for the child to retrieve
      * @return The child node, or nil if not found
      */
-    func getChild(_ key: String) -> Self? {
+    func getChild(_ key: String) -> ArrayTrieNode<Value>? {
         children[key]
     }
     
@@ -152,7 +152,7 @@ struct ArrayTrieNode<Value> {
      * Updates the prefix of this node.
      * @param prefix The new prefix array
      */
-    mutating func updatePrefix(_ prefix: [String]) {
+    func updatePrefix(_ prefix: [String]) {
         self.prefix = prefix
     }
     
@@ -160,7 +160,7 @@ struct ArrayTrieNode<Value> {
      * Updates the value stored at this node.
      * @param value The new value, or nil to remove the value
      */
-    mutating func updateValue(_ value: Value?) {
+    func updateValue(_ value: Value?) {
         self.value = value
     }
     
@@ -168,7 +168,7 @@ struct ArrayTrieNode<Value> {
      * Updates all children of this node.
      * @param children The new children map
      */
-    mutating func updateChildren(_ children: ChildMap) {
+    func updateChildren(_ children: ChildMap) {
         self.children = children
     }
     
@@ -177,12 +177,8 @@ struct ArrayTrieNode<Value> {
      * @param key The key for the child to update
      * @param node The new node value, or nil to remove the child
      */
-    mutating func updateChild(_ key: String, _ node: Self?) {
-        guard let node = node else {
-            children.removeValue(forKey: key)
-            return
-        }
-        children.updateValue(node, forKey: key)
+    func updateChild(_ key: String, _ node: ArrayTrieNode<Value>?) {
+        children[key] = node
     }
     
     /**
@@ -191,8 +187,8 @@ struct ArrayTrieNode<Value> {
      * @param children The new children map, or nil to keep the current children
      * @return A new node with the specified changes
      */
-    func with(prefix: [String]?, children: ChildMap?) -> Self {
-        Self(prefix: prefix ?? self.prefix, value: value, children: children ?? self.children)
+    func with(prefix: [String]?, children: ChildMap?) -> ArrayTrieNode<Value> {
+        ArrayTrieNode(prefix: prefix ?? self.prefix, value: value, children: children ?? self.children)
     }
     
     /**
@@ -200,8 +196,8 @@ struct ArrayTrieNode<Value> {
      * @param value The new value, or nil to remove the value
      * @return A new node with the specified value
      */
-    func with(value: Value?) -> Self {
-        Self(prefix: prefix, value: value, children: children)
+    func with(value: Value?) -> ArrayTrieNode<Value> {
+        ArrayTrieNode(prefix: prefix, value: value, children: children)
     }
     
     /**
@@ -210,15 +206,10 @@ struct ArrayTrieNode<Value> {
      * @param node The new node value, or nil to remove the child
      * @return A new node with the specified child added, updated, or removed
      */
-    func with(child: String, node: Self?) -> Self {
-        if let node = node {
-            var copy = children
-            copy.updateValue(node, forKey: child)
-            return with(prefix: nil, children: copy)
-        }
-        var copy = children
-        copy.removeValue(forKey: child)
-        return with(prefix: nil, children: copy)
+    func with(child: String, node: ArrayTrieNode<Value>?) -> ArrayTrieNode<Value> {
+        var newChildren = children
+        newChildren[child] = node
+        return with(prefix: nil, children: newChildren)
     }
     
     /**
@@ -258,7 +249,7 @@ struct ArrayTrieNode<Value> {
      * @param keys An array slice of string segments forming the path to set
      * @param value The value to store at the specified path
      */
-    mutating func set(keys: ArraySlice<String>, to value: Value) {
+    func set(keys: ArraySlice<String>, to value: Value) {
         // Case 1: The keys start with this node's prefix
         if keys.count >= prefix.count && keys.starts(with: prefix) {
             let suffix = keys.dropFirst(prefix.count)
@@ -271,7 +262,7 @@ struct ArrayTrieNode<Value> {
             
             // If there's no matching child, create a new one
             if children[firstSuffixValue] == nil {
-                updateChild(firstSuffixValue, Self(prefix: Array(suffix), value: value, children: ChildMap()))
+                updateChild(firstSuffixValue, Self(prefix: Array(suffix), value: value, children: [:]))
                 return
             }
             
@@ -284,9 +275,10 @@ struct ArrayTrieNode<Value> {
         if prefix.count > keys.count && prefix.starts(with: keys) {
             // Split this node into two parts
             let suffix = prefix.dropFirst(keys.count)
-            var newChild = ChildMap()
-            newChild.updateValue(with(prefix: Array(suffix), children: nil), forKey: suffix.first!)
+            var newChild: ChildMap = [:]
+            newChild[suffix.first!] = with(prefix: Array(suffix), children: children)
             updatePrefix(Array(keys))
+            updateValue(value)
             updateChildren(newChild)
             return
         }
@@ -298,13 +290,15 @@ struct ArrayTrieNode<Value> {
         let oldPrefix = prefixSlice.dropFirst(parentPrefix.count)
         
         // Create new nodes for the divergent paths
-        let newNode = Self(prefix: Array(newPrefix), value: value, children: ChildMap())
-        let oldNode = with(prefix: Array(oldPrefix), children: nil)
-        let newChildren = ChildMap([newPrefix.first!: newNode, oldPrefix.first!: oldNode])
+        let newNode = Self(prefix: Array(newPrefix), value: value, children: [:])
+        let oldNode = with(prefix: Array(oldPrefix), children: children)
+        var newChildren: ChildMap = [:]
+        newChildren[newPrefix.first!] = newNode
+        newChildren[oldPrefix.first!] = oldNode
         
         // Update this node to be the parent
         updatePrefix(parentPrefix)
-        updateValue(nil)
+        updateValue(nil as Value?)
         updateChildren(newChildren)
     }
     
@@ -315,7 +309,7 @@ struct ArrayTrieNode<Value> {
      * @param value The value to store at the specified path
      * @return A new node with the value set at the specified path
      */
-    func setting(keys: ArraySlice<String>, to value: Value) -> Self {
+    func setting(keys: ArraySlice<String>, to value: Value) -> ArrayTrieNode<Value> {
         // Similar logic to set(), but returning new nodes instead of modifying
         
         // Case 1: The keys start with this node's prefix
@@ -327,7 +321,7 @@ struct ArrayTrieNode<Value> {
             
             // If there's no matching child, create a new one
             guard let childNode = children[firstSuffixValue] else {
-                return with(child: firstSuffixValue, node: Self(prefix: Array(suffix), value: value, children: ChildMap()))
+                return with(child: firstSuffixValue, node: Self(prefix: Array(suffix), value: value, children: [:]))
             }
             
             // Otherwise, recursively set in the matching child
@@ -338,8 +332,8 @@ struct ArrayTrieNode<Value> {
         if prefix.count > keys.count && prefix.starts(with: keys) {
             // Split this node into two parts
             let suffix = prefix.dropFirst(keys.count)
-            var newChild = ChildMap()
-            newChild.updateValue(with(prefix: Array(suffix), children: nil), forKey: suffix.first!)
+            var newChild: ChildMap = [:]
+            newChild[suffix.first!] = with(prefix: Array(suffix), children: children)
             return Self(prefix: Array(keys), value: value, children: newChild)
         }
         
@@ -350,12 +344,14 @@ struct ArrayTrieNode<Value> {
         let oldPrefix = prefixSlice.dropFirst(parentPrefix.count)
         
         // Create new nodes for the divergent paths
-        let newNode = Self(prefix: Array(newPrefix), value: value, children: ChildMap())
-        let oldNode = with(prefix: Array(oldPrefix), children: nil)
-        let newChildren = ChildMap([newPrefix.first!: newNode, oldPrefix.first!: oldNode])
+        let newNode = Self(prefix: Array(newPrefix), value: value, children: [:])
+        let oldNode = with(prefix: Array(oldPrefix), children: children)
+        var newChildren: ChildMap = [:]
+        newChildren[newPrefix.first!] = newNode
+        newChildren[oldPrefix.first!] = oldNode
         
         // Create a new parent node
-        return Self(prefix: parentPrefix, value: nil, children: newChildren)
+        return Self(prefix: parentPrefix, value: nil as Value?, children: newChildren)
     }
     
     /**
@@ -368,8 +364,9 @@ struct ArrayTrieNode<Value> {
         if prefix.starts(with: path) {
             let suffix = prefix.dropFirst(path.count)
             guard let firstSuffix = suffix.first else { return children }
-            var newChild = ChildMap()
+            var newChild: ChildMap = [:]
             newChild[firstSuffix] = Self(prefix: Array(suffix), value: value, children: children)
+            return newChild
         }
         
         // If this node's prefix is not a prefix of the path
@@ -377,7 +374,7 @@ struct ArrayTrieNode<Value> {
         
         // Get the remaining suffix after this node's prefix
         let suffix = path.dropFirst(prefix.count)
-        let firstSuffix = suffix.first!
+        guard let firstSuffix = suffix.first else { return children }
         
         // Look for a child node matching the first suffix element
         guard let child = children[firstSuffix] else { return nil }
@@ -391,16 +388,16 @@ struct ArrayTrieNode<Value> {
      * If this node has exactly one child, it merges with that child.
      * @return A new node with the value removed, or nil if the node should be deleted
      */
-    func deleting() -> Self? {
+    func deleting() -> ArrayTrieNode<Value>? {
         // If this node has no children, delete it
-        if children.values.isEmpty { return nil }
+        if children.isEmpty { return nil }
         
         // If this node has multiple children, just remove its value
-        if children.values.count > 1 { return with(value: nil) }
+        if children.count > 1 { return with(value: nil as Value?) }
         
         // If this node has exactly one child, merge with it
-        let onlyChild = children.values.first!
-        return onlyChild.with(prefix: prefix + onlyChild.prefix, children: nil)
+        let onlyChild = children.values().first!
+        return Self(prefix: prefix + onlyChild.prefix, value: onlyChild.value, children: onlyChild.children)
     }
     
     /**
@@ -408,7 +405,7 @@ struct ArrayTrieNode<Value> {
      * @param path An array slice of string segments forming the path to delete
      * @return A new node with the specified path removed, or nil if this node should be deleted
      */
-    func deleting(_ path: ArraySlice<String>) -> Self? {
+    func deleting(_ path: ArraySlice<String>) -> ArrayTrieNode<Value>? {
         // If the path doesn't start with this node's prefix, nothing to delete
         if !path.starts(with: prefix) { return self }
         
@@ -424,14 +421,15 @@ struct ArrayTrieNode<Value> {
         // Recursively delete in the matching child node
         guard let childResult = child.deleting(suffix) else {
             // Child was deleted, handle this node accordingly
-            if value != nil || children.values.count > 2 {
+            if value != nil || children.count > 2 {
                 // This node has a value or multiple children, just remove the deleted child
                 return with(child: firstValue, node: nil)
             }
             
             // This node has exactly one remaining child, merge with it
-            let childNode = children.values.first(where: { $0.prefix.first! != firstValue })!
-            return childNode.with(prefix: prefix + childNode.prefix, children: nil)
+            let remainingChildren = children.values().filter { $0.prefix.first! != firstValue }
+            let childNode = remainingChildren.first!
+            return Self(prefix: prefix + childNode.prefix, value: childNode.value, children: childNode.children)
         }
         
         // Child was updated, update this node accordingly

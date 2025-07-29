@@ -12,7 +12,7 @@ let package = Package(
             targets: ["ArrayTrie"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-collections.git", from: "1.1.4"),
+        .package(url: "https://github.com/pumperknickle/TrieDictionary.git", from: "0.0.1"),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -20,7 +20,7 @@ let package = Package(
         .target(
             name: "ArrayTrie",
             dependencies: [
-                .product(name: "Collections", package: "swift-collections"),]),
+                .product(name: "TrieDictionary", package: "TrieDictionary"),]),
         .testTarget(
             name: "ArrayTrieTests",
             dependencies: ["ArrayTrie"]
