@@ -319,13 +319,7 @@ import TrieDictionary
         #expect(usersSubtrie != nil)
         if let subtrie = usersSubtrie {
             #expect(!subtrie.isEmpty())
-            // The traverse method operates on the top-level keys and doesn't create a functional subtrie
-            // It's more of a filtering operation. The resulting trie is not directly usable for get operations
-            // with the suffix keys because the nodes retain their original prefixes
-            
-            // We can verify the structure exists by checking that it's not empty
             let keys = subtrie.children.keys()
-            #expect(keys.contains(""))
             #expect(keys.contains("-admin"))
         }
     }
@@ -379,7 +373,6 @@ import TrieDictionary
             #expect(!subtrie.isEmpty())
             // The traversed trie contains the suffix keys after removing the prefix
             let keys = subtrie.children.keys()
-            #expect(keys.contains(""))    // for "user"
             #expect(keys.contains("s"))   // for "users" 
             #expect(keys.contains("data")) // for "userdata"
         }

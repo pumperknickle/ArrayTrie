@@ -35,7 +35,6 @@ Add the following to your `Package.swift` file's dependencies:
 ```swift
 dependencies: [
     .package(url: "https://github.com/yourusername/ArrayTrie.git", from: "1.0.0"),
-    .package(url: "https://github.com/apple/swift-collections.git", from: "1.0.0")
 ]
 ```
 
@@ -47,7 +46,6 @@ targets: [
         name: "YourTarget",
         dependencies: [
             .product(name: "ArrayTrie", package: "ArrayTrie"),
-            .product(name: "Collections", package: "swift-collections")
         ]),
 ]
 ```

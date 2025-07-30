@@ -12,7 +12,7 @@ let package = Package(
             targets: ["ArrayTrie"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/pumperknickle/TrieDictionary.git", from: "0.0.2"),
+        .package(url: "https://github.com/pumperknickle/TrieDictionary.git", from: "0.0.3"),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
