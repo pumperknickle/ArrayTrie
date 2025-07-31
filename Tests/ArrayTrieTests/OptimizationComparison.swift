@@ -177,7 +177,7 @@ import TrieDictionary
         // Test with paths that create many ArraySlice operations
         
         // Original (many ArraySlice allocations)
-        let originalStart = CFAbsoluteTimeGetCurrent()
+        let originalStart = DispatchTime.now()
         var originalTrie = ArrayTrie<String>()
         for (index, path) in longPaths.enumerated() {
             originalTrie.set(path, value: "value\(index)")
@@ -185,10 +185,10 @@ import TrieDictionary
         for path in longPaths {
             _ = originalTrie.get(path)
         }
-        let originalTime = CFAbsoluteTimeGetCurrent() - originalStart
+        let originalTime = Double(DispatchTime.now().uptimeNanoseconds - originalStart.uptimeNanoseconds) / 1_000_000_000
         
         // Memory optimized (fewer ArraySlice allocations)
-        let optimizedStart = CFAbsoluteTimeGetCurrent()
+        let optimizedStart = DispatchTime.now()
         var optimizedTrie = MemoryOptimizedArrayTrie<String>()
         for (index, path) in longPaths.enumerated() {
             optimizedTrie.set(path, value: "value\(index)")
@@ -196,7 +196,7 @@ import TrieDictionary
         for path in longPaths {
             _ = optimizedTrie.get(path)
         }
-        let optimizedTime = CFAbsoluteTimeGetCurrent() - optimizedStart
+        let optimizedTime = Double(DispatchTime.now().uptimeNanoseconds - optimizedStart.uptimeNanoseconds) / 1_000_000_000
         
         print("Original ArrayTrie (deep paths): \(String(format: "%.4f", originalTime))s")
         print("Memory Optimized (deep paths): \(String(format: "%.4f", optimizedTime))s")
@@ -216,19 +216,19 @@ import TrieDictionary
         print("\n=== Common Prefix Optimization Test ===")
         
         // Test both implementations
-        let originalStart = CFAbsoluteTimeGetCurrent()
+        let originalStart = DispatchTime.now()
         var originalTrie = ArrayTrie<String>()
         for (index, path) in paths.enumerated() {
             originalTrie.set(path, value: "value\(index)")
         }
-        let originalTime = CFAbsoluteTimeGetCurrent() - originalStart
+        let originalTime = Double(DispatchTime.now().uptimeNanoseconds - originalStart.uptimeNanoseconds) / 1_000_000_000
         
-        let optimizedStart = CFAbsoluteTimeGetCurrent()
+        let optimizedStart = DispatchTime.now()
         var optimizedTrie = AlgorithmicOptimizedArrayTrie<String>()
         for (index, path) in paths.enumerated() {
             optimizedTrie.set(path, value: "value\(index)")
         }
-        let optimizedTime = CFAbsoluteTimeGetCurrent() - optimizedStart
+        let optimizedTime = Double(DispatchTime.now().uptimeNanoseconds - optimizedStart.uptimeNanoseconds) / 1_000_000_000
         
         print("Original (common prefixes): \(String(format: "%.4f", originalTime))s")
         print("Algorithmic Optimized (common prefixes): \(String(format: "%.4f", optimizedTime))s")
@@ -309,9 +309,9 @@ import TrieDictionary
         paths: [[String]],
         operation: ([[String]]) -> T
     ) {
-        let startTime = CFAbsoluteTimeGetCurrent()
+        let startTime = DispatchTime.now()
         _ = operation(paths)
-        let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
+        let timeElapsed = Double(DispatchTime.now().uptimeNanoseconds - startTime.uptimeNanoseconds) / 1_000_000_000
         
         print("\(name): \(String(format: "%.4f", timeElapsed))s")
     }
@@ -321,19 +321,19 @@ import TrieDictionary
         paths: [[String]],
         operation: ([String]) -> Bool
     ) {
-        let startTime = CFAbsoluteTimeGetCurrent()
+        let startTime = DispatchTime.now()
         
         for path in paths {
             _ = operation(path)
         }
         
-        let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
+        let timeElapsed = Double(DispatchTime.now().uptimeNanoseconds - startTime.uptimeNanoseconds) / 1_000_000_000
         print("\(name): \(String(format: "%.4f", timeElapsed))s")
     }
     
     private func measurePerformanceScenario(name: String, paths: [[String]]) {
         // Test original
-        let originalStart = CFAbsoluteTimeGetCurrent()
+        let originalStart = DispatchTime.now()
         var originalTrie = ArrayTrie<String>()
         for (index, path) in paths.enumerated() {
             originalTrie.set(path, value: "value\(index)")
@@ -341,10 +341,10 @@ import TrieDictionary
         for path in paths {
             _ = originalTrie.get(path)
         }
-        let originalTime = CFAbsoluteTimeGetCurrent() - originalStart
+        let originalTime = Double(DispatchTime.now().uptimeNanoseconds - originalStart.uptimeNanoseconds) / 1_000_000_000
         
         // Test memory optimized
-        let memoryStart = CFAbsoluteTimeGetCurrent()
+        let memoryStart = DispatchTime.now()
         var memoryTrie = MemoryOptimizedArrayTrie<String>()
         for (index, path) in paths.enumerated() {
             memoryTrie.set(path, value: "value\(index)")
@@ -352,7 +352,7 @@ import TrieDictionary
         for path in paths {
             _ = memoryTrie.get(path)
         }
-        let memoryTime = CFAbsoluteTimeGetCurrent() - memoryStart
+        let memoryTime = Double(DispatchTime.now().uptimeNanoseconds - memoryStart.uptimeNanoseconds) / 1_000_000_000
         
         print("\(name):")
         print("  Original: \(String(format: "%.4f", originalTime))s")

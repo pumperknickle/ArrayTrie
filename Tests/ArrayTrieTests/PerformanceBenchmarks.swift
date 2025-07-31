@@ -55,13 +55,13 @@ import TrieDictionary
             let paths = generateTestPaths(count: testCase.count)
             var trie = ArrayTrie<String>()
             
-            let startTime = CFAbsoluteTimeGetCurrent()
+            let startTime = DispatchTime.now()
             
             for (index, path) in paths.enumerated() {
                 trie.set(path, value: "value\(index)")
             }
             
-            let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
+            let timeElapsed = Double(DispatchTime.now().uptimeNanoseconds - startTime.uptimeNanoseconds) / 1_000_000_000
             
             print("Insertion \(testCase.name) (\(testCase.count) items): \(String(format: "%.4f", timeElapsed))s")
             print("Average per insertion: \(String(format: "%.6f", timeElapsed / Double(testCase.count)))s")
@@ -79,13 +79,13 @@ import TrieDictionary
             let paths = generateHierarchicalPaths(breadth: testCase.breadth, depth: testCase.depth)
             var trie = ArrayTrie<String>()
             
-            let startTime = CFAbsoluteTimeGetCurrent()
+            let startTime = DispatchTime.now()
             
             for (index, path) in paths.enumerated() {
                 trie.set(path, value: "value\(index)")
             }
             
-            let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
+            let timeElapsed = Double(DispatchTime.now().uptimeNanoseconds - startTime.uptimeNanoseconds) / 1_000_000_000
             
             print("Hierarchical \(testCase.name) (\(paths.count) items): \(String(format: "%.4f", timeElapsed))s")
         }
@@ -103,13 +103,13 @@ import TrieDictionary
         }
         
         // Benchmark successful lookups
-        let startTime = CFAbsoluteTimeGetCurrent()
+        let startTime = DispatchTime.now()
         
         for path in paths {
             _ = trie.get(path)
         }
         
-        let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
+        let timeElapsed = Double(DispatchTime.now().uptimeNanoseconds - startTime.uptimeNanoseconds) / 1_000_000_000
         
         print("Lookup Performance (5000 items): \(String(format: "%.4f", timeElapsed))s")
         print("Average per lookup: \(String(format: "%.6f", timeElapsed / Double(paths.count)))s")
@@ -117,13 +117,13 @@ import TrieDictionary
         // Benchmark failed lookups
         let nonExistentPaths = generateTestPaths(count: 1000).map { $0 + ["nonexistent"] }
         
-        let startTime2 = CFAbsoluteTimeGetCurrent()
+        let startTime2 = DispatchTime.now()
         
         for path in nonExistentPaths {
             _ = trie.get(path)
         }
         
-        let timeElapsed2 = CFAbsoluteTimeGetCurrent() - startTime2
+        let timeElapsed2 = Double(DispatchTime.now().uptimeNanoseconds - startTime2.uptimeNanoseconds) / 1_000_000_000
         
         print("Failed Lookup Performance (1000 items): \(String(format: "%.4f", timeElapsed2))s")
     }
@@ -147,13 +147,13 @@ import TrieDictionary
         ]
         
         for traversalPath in traversalPaths {
-            let startTime = CFAbsoluteTimeGetCurrent()
+            let startTime = DispatchTime.now()
             
             for _ in 0..<1000 {
                 _ = trie.traverse(traversalPath)
             }
             
-            let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
+            let timeElapsed = Double(DispatchTime.now().uptimeNanoseconds - startTime.uptimeNanoseconds) / 1_000_000_000
             
             print("Traversal depth \(traversalPath.count) (1000 ops): \(String(format: "%.4f", timeElapsed))s")
         }
@@ -173,13 +173,13 @@ import TrieDictionary
         // Benchmark deletions (immutable operations)
         let pathsToDelete = Array(paths.prefix(1000))
         
-        let startTime = CFAbsoluteTimeGetCurrent()
+        let startTime = DispatchTime.now()
         
         for path in pathsToDelete {
             trie = trie.deleting(path: path)
         }
         
-        let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
+        let timeElapsed = Double(DispatchTime.now().uptimeNanoseconds - startTime.uptimeNanoseconds) / 1_000_000_000
         
         print("Deletion Performance (1000 items): \(String(format: "%.4f", timeElapsed))s")
         print("Average per deletion: \(String(format: "%.6f", timeElapsed / Double(pathsToDelete.count)))s")
@@ -215,22 +215,22 @@ import TrieDictionary
             var trie = ArrayTrie<String>()
             
             // Insertion time
-            let insertStartTime = CFAbsoluteTimeGetCurrent()
+            let insertStartTime = DispatchTime.now()
             
             for (index, path) in paths.enumerated() {
                 trie.set(path, value: "value\(index)")
             }
             
-            let insertTimeElapsed = CFAbsoluteTimeGetCurrent() - insertStartTime
+            let insertTimeElapsed = Double(DispatchTime.now().uptimeNanoseconds - insertStartTime.uptimeNanoseconds) / 1_000_000_000
             
             // Lookup time
-            let lookupStartTime = CFAbsoluteTimeGetCurrent()
+            let lookupStartTime = DispatchTime.now()
             
             for path in paths {
                 _ = trie.get(path)
             }
             
-            let lookupTimeElapsed = CFAbsoluteTimeGetCurrent() - lookupStartTime
+            let lookupTimeElapsed = Double(DispatchTime.now().uptimeNanoseconds - lookupStartTime.uptimeNanoseconds) / 1_000_000_000
             
             print("Path length \(pathLength) - Insert: \(String(format: "%.4f", insertTimeElapsed))s, Lookup: \(String(format: "%.4f", lookupTimeElapsed))s")
         }
@@ -250,24 +250,24 @@ import TrieDictionary
         
         var trie = ArrayTrie<String>()
         
-        let startTime = CFAbsoluteTimeGetCurrent()
+        let startTime = DispatchTime.now()
         
         for (index, path) in paths.enumerated() {
             trie.set(path, value: "value\(index)")
         }
         
-        let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
+        let timeElapsed = Double(DispatchTime.now().uptimeNanoseconds - startTime.uptimeNanoseconds) / 1_000_000_000
         
         print("Common Prefix Insertion (5000 items): \(String(format: "%.4f", timeElapsed))s")
         
         // Test traversal performance with common prefixes
-        let traversalStartTime = CFAbsoluteTimeGetCurrent()
+        let traversalStartTime = DispatchTime.now()
         
         for _ in 0..<1000 {
             _ = trie.traverse(["api", "v1"])
         }
         
-        let traversalTimeElapsed = CFAbsoluteTimeGetCurrent() - traversalStartTime
+        let traversalTimeElapsed = Double(DispatchTime.now().uptimeNanoseconds - traversalStartTime.uptimeNanoseconds) / 1_000_000_000
         
         print("Common Prefix Traversal (1000 ops): \(String(format: "%.4f", traversalTimeElapsed))s")
     }
@@ -288,13 +288,13 @@ import TrieDictionary
         
         // Benchmark string traversal
         for prefix in prefixBases {
-            let startTime = CFAbsoluteTimeGetCurrent()
+            let startTime = DispatchTime.now()
             
             for _ in 0..<100 {
                 _ = trie.traverse(path: prefix)
             }
             
-            let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
+            let timeElapsed = Double(DispatchTime.now().uptimeNanoseconds - startTime.uptimeNanoseconds) / 1_000_000_000
             
             print("String traversal '\(prefix)' (100 ops): \(String(format: "%.4f", timeElapsed))s")
         }

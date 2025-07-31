@@ -86,11 +86,11 @@ import TrieDictionary
         
         // 1. Insertion-heavy phase
         print("Phase 1: Insertion-heavy workload")
-        let insertionStart = CFAbsoluteTimeGetCurrent()
+        let insertionStart = DispatchTime.now()
         for i in 0..<2000 {
             adaptiveTrie.set(["bulk", "insert", "item\(i)"], value: "value\(i)")
         }
-        let insertionTime = CFAbsoluteTimeGetCurrent() - insertionStart
+        let insertionTime = Double(DispatchTime.now().uptimeNanoseconds - insertionStart.uptimeNanoseconds) / 1_000_000_000
         
         let metrics1 = adaptiveTrie.getPerformanceMetrics()
         print("  Strategy: \(metrics1.strategy)")
@@ -98,11 +98,11 @@ import TrieDictionary
         
         // 2. Lookup-heavy phase
         print("\nPhase 2: Lookup-heavy workload")
-        let lookupStart = CFAbsoluteTimeGetCurrent()
+        let lookupStart = DispatchTime.now()
         for i in 0..<5000 {
             _ = adaptiveTrie.get(["bulk", "insert", "item\(i % 2000)"])
         }
-        let lookupTime = CFAbsoluteTimeGetCurrent() - lookupStart
+        let lookupTime = Double(DispatchTime.now().uptimeNanoseconds - lookupStart.uptimeNanoseconds) / 1_000_000_000
         
         let metrics2 = adaptiveTrie.getPerformanceMetrics()
         print("  Strategy: \(metrics2.strategy)")
@@ -110,7 +110,7 @@ import TrieDictionary
         
         // 3. Mixed workload phase
         print("\nPhase 3: Mixed workload")
-        let mixedStart = CFAbsoluteTimeGetCurrent()
+        let mixedStart = DispatchTime.now()
         for i in 0..<1000 {
             if i % 3 == 0 {
                 adaptiveTrie.set(["mixed", "new\(i)"], value: "mixed\(i)")
@@ -118,7 +118,7 @@ import TrieDictionary
                 _ = adaptiveTrie.get(["bulk", "insert", "item\(i % 100)"])
             }
         }
-        let mixedTime = CFAbsoluteTimeGetCurrent() - mixedStart
+        let mixedTime = Double(DispatchTime.now().uptimeNanoseconds - mixedStart.uptimeNanoseconds) / 1_000_000_000
         
         let metrics3 = adaptiveTrie.getPerformanceMetrics()
         print("  Final strategy: \(metrics3.strategy)")
@@ -139,7 +139,7 @@ import TrieDictionary
         let concurrentTrie = ConcurrentArrayTrie<String>()
         
         // Test concurrent insertions
-        let concurrentStart = CFAbsoluteTimeGetCurrent()
+        let concurrentStart = DispatchTime.now()
         
         await withTaskGroup(of: Void.self) { group in
             for taskId in 0..<4 {
@@ -151,10 +151,10 @@ import TrieDictionary
             }
         }
         
-        let concurrentTime = CFAbsoluteTimeGetCurrent() - concurrentStart
+        let concurrentTime = Double(DispatchTime.now().uptimeNanoseconds - concurrentStart.uptimeNanoseconds) / 1_000_000_000
         
         // Test concurrent lookups
-        let lookupStart = CFAbsoluteTimeGetCurrent()
+        let lookupStart = DispatchTime.now()
         
         await withTaskGroup(of: Void.self) { group in
             for taskId in 0..<4 {
@@ -166,16 +166,16 @@ import TrieDictionary
             }
         }
         
-        let lookupTime = CFAbsoluteTimeGetCurrent() - lookupStart
+        let lookupTime = Double(DispatchTime.now().uptimeNanoseconds - lookupStart.uptimeNanoseconds) / 1_000_000_000
         
         // Test batch operations
         let batchData = (0..<1000).map { i in
             (["batch", "item\(i)"], "batch_value\(i)")
         }
         
-        let batchStart = CFAbsoluteTimeGetCurrent()
+        let batchStart = DispatchTime.now()
         await concurrentTrie.batchSet(batchData)
-        let batchTime = CFAbsoluteTimeGetCurrent() - batchStart
+        let batchTime = Double(DispatchTime.now().uptimeNanoseconds - batchStart.uptimeNanoseconds) / 1_000_000_000
         
         let accessCount = await concurrentTrie.getAccessCount()
         
@@ -259,7 +259,7 @@ import TrieDictionary
         let allPaths = data.api + data.filesystem
         
         // Original implementation
-        let originalStart = CFAbsoluteTimeGetCurrent()
+        let originalStart = DispatchTime.now()
         var originalTrie = ArrayTrie<String>()
         
         for (index, path) in allPaths.enumerated() {
@@ -271,10 +271,10 @@ import TrieDictionary
             _ = originalTrie.get(path)
         }
         
-        let originalTime = CFAbsoluteTimeGetCurrent() - originalStart
+        let originalTime = Double(DispatchTime.now().uptimeNanoseconds - originalStart.uptimeNanoseconds) / 1_000_000_000
         
         // Optimized implementation
-        let optimizedStart = CFAbsoluteTimeGetCurrent()
+        let optimizedStart = DispatchTime.now()
         var optimizedTrie = AlgorithmicOptimizedArrayTrie<String>()
         
         for (index, path) in allPaths.enumerated() {
@@ -286,7 +286,7 @@ import TrieDictionary
             _ = optimizedTrie.get(path)
         }
         
-        let optimizedTime = CFAbsoluteTimeGetCurrent() - optimizedStart
+        let optimizedTime = Double(DispatchTime.now().uptimeNanoseconds - optimizedStart.uptimeNanoseconds) / 1_000_000_000
         
         let improvement = originalTime > optimizedTime ?
             (originalTime - optimizedTime) / originalTime : 0.0
@@ -321,7 +321,7 @@ import TrieDictionary
         let iterations = 1000
         
         // Without optimization (many ArraySlice creations)
-        let start1 = CFAbsoluteTimeGetCurrent()
+        let start1 = DispatchTime.now()
         var trie1 = ArrayTrie<String>()
         for (index, path) in paths.enumerated() {
             trie1.set(path, value: "value\(index)")
@@ -331,10 +331,10 @@ import TrieDictionary
                 _ = trie1.get(path)
             }
         }
-        let time1 = CFAbsoluteTimeGetCurrent() - start1
+        let time1 = Double(DispatchTime.now().uptimeNanoseconds - start1.uptimeNanoseconds) / 1_000_000_000
         
         // With optimization (reduced ArraySlice creations)
-        let start2 = CFAbsoluteTimeGetCurrent()
+        let start2 = DispatchTime.now()
         var trie2 = MemoryOptimizedArrayTrie<String>()
         for (index, path) in paths.enumerated() {
             trie2.set(path, value: "value\(index)")
@@ -344,26 +344,26 @@ import TrieDictionary
                 _ = trie2.get(path)
             }
         }
-        let time2 = CFAbsoluteTimeGetCurrent() - start2
+        let time2 = Double(DispatchTime.now().uptimeNanoseconds - start2.uptimeNanoseconds) / 1_000_000_000
         
         return time1 > time2 ? (time1 - time2) / time1 : 0.0
     }
     
     private func testPrefixOptimization(paths: [[String]]) async -> Double {
         // Test prefix comparison optimizations
-        let start1 = CFAbsoluteTimeGetCurrent()
+        let start1 = DispatchTime.now()
         var trie1 = ArrayTrie<String>()
         for (index, path) in paths.enumerated() {
             trie1.set(path, value: "value\(index)")
         }
-        let time1 = CFAbsoluteTimeGetCurrent() - start1
+        let time1 = Double(DispatchTime.now().uptimeNanoseconds - start1.uptimeNanoseconds) / 1_000_000_000
         
-        let start2 = CFAbsoluteTimeGetCurrent()
+        let start2 = DispatchTime.now()
         var trie2 = SIMDOptimizedArrayTrie<String>()
         for (index, path) in paths.enumerated() {
             trie2.set(path, value: "value\(index)")
         }
-        let time2 = CFAbsoluteTimeGetCurrent() - start2
+        let time2 = Double(DispatchTime.now().uptimeNanoseconds - start2.uptimeNanoseconds) / 1_000_000_000
         
         return time1 > time2 ? (time1 - time2) / time1 : 0.0
     }
@@ -393,7 +393,7 @@ import TrieDictionary
         }
         
         // Standard implementation
-        let start1 = CFAbsoluteTimeGetCurrent()
+        let start1 = DispatchTime.now()
         var trie1 = ArrayTrie<String>()
         for (index, path) in paths.enumerated() {
             trie1.set(path, value: "value\(index)")
@@ -401,10 +401,10 @@ import TrieDictionary
         for path in paths {
             _ = trie1.get(path)
         }
-        let time1 = CFAbsoluteTimeGetCurrent() - start1
+        let time1 = Double(DispatchTime.now().uptimeNanoseconds - start1.uptimeNanoseconds) / 1_000_000_000
         
         // SIMD optimized implementation
-        let start2 = CFAbsoluteTimeGetCurrent()
+        let start2 = DispatchTime.now()
         var trie2 = SIMDOptimizedArrayTrie<String>()
         for (index, path) in paths.enumerated() {
             trie2.set(path, value: "value\(index)")
@@ -412,7 +412,7 @@ import TrieDictionary
         for path in paths {
             _ = trie2.get(path)
         }
-        let time2 = CFAbsoluteTimeGetCurrent() - start2
+        let time2 = Double(DispatchTime.now().uptimeNanoseconds - start2.uptimeNanoseconds) / 1_000_000_000
         
         let hashImprovement = time1 > time2 ? (time1 - time2) / time1 * 0.3 : 0.0 // Hash filtering contribution
         let overallImprovement = time1 > time2 ? (time1 - time2) / time1 : 0.0
@@ -433,7 +433,7 @@ import TrieDictionary
         
         // Standard implementation
         let memoryBefore1 = getMemoryUsage()
-        let start1 = CFAbsoluteTimeGetCurrent()
+        let start1 = DispatchTime.now()
         var trie1 = ArrayTrie<String>()
         for (index, path) in sparsePaths.enumerated() {
             trie1.set(path, value: "value\(index)")
@@ -441,12 +441,12 @@ import TrieDictionary
         for path in sparsePaths {
             _ = trie1.get(path)
         }
-        let time1 = CFAbsoluteTimeGetCurrent() - start1
+        let time1 = Double(DispatchTime.now().uptimeNanoseconds - start1.uptimeNanoseconds) / 1_000_000_000
         let memory1 = getMemoryUsage() - memoryBefore1
         
         // Compressed implementation
         let memoryBefore2 = getMemoryUsage()
-        let start2 = CFAbsoluteTimeGetCurrent()
+        let start2 = DispatchTime.now()
         var trie2 = CompressedPathArrayTrie<String>()
         for (index, path) in sparsePaths.enumerated() {
             trie2.set(path, value: "value\(index)")
@@ -454,7 +454,7 @@ import TrieDictionary
         for path in sparsePaths {
             _ = trie2.get(path)
         }
-        let time2 = CFAbsoluteTimeGetCurrent() - start2
+        let time2 = Double(DispatchTime.now().uptimeNanoseconds - start2.uptimeNanoseconds) / 1_000_000_000
         let memory2 = getMemoryUsage() - memoryBefore2
         
         let memoryReduction = memory1 > memory2 ? Double(memory1 - memory2) / Double(memory1) : 0.0
@@ -478,7 +478,7 @@ import TrieDictionary
             (name: "mixed", operations: 3000..<4000)
         ]
         
-        let overallStart = CFAbsoluteTimeGetCurrent()
+        let overallStart = DispatchTime.now()
         
         for phase in phases {
             for i in phase.operations {
@@ -505,11 +505,11 @@ import TrieDictionary
             }
         }
         
-        let overallTime = CFAbsoluteTimeGetCurrent() - overallStart
+        let overallTime = Double(DispatchTime.now().uptimeNanoseconds - overallStart.uptimeNanoseconds) / 1_000_000_000
         let finalMetrics = trie.getPerformanceMetrics()
         
         // Compare with non-adaptive baseline
-        let baselineStart = CFAbsoluteTimeGetCurrent()
+        let baselineStart = DispatchTime.now()
         var baselineTrie = ArrayTrie<String>()
         
         for i in 0..<4000 {
@@ -526,7 +526,7 @@ import TrieDictionary
             }
         }
         
-        let baselineTime = CFAbsoluteTimeGetCurrent() - baselineStart
+        let baselineTime = Double(DispatchTime.now().uptimeNanoseconds - baselineStart.uptimeNanoseconds) / 1_000_000_000
         let improvement = baselineTime > overallTime ? (baselineTime - overallTime) / baselineTime : 0.0
         
         return AdaptiveBehaviorResult(
