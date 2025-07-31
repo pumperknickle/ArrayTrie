@@ -1,7 +1,6 @@
 import XCTest
 import Testing
 import TrieDictionary
-import Darwin.Mach
 @testable import ArrayTrie
 
 @Suite struct ComprehensiveOptimizationTest {
