@@ -410,4 +410,225 @@ import TrieDictionary
         // Verify the subtrie is nil
         #expect(subtrie == nil)
     }
+    
+    // MARK: - GetValuesAlongPath Tests
+    
+    @Test func testGetValuesAlongPathBasic() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with values at different path levels
+        trie.set(["u"], value: "U")
+        trie.set(["us"], value: "US")
+        trie.set(["use"], value: "USE")
+        trie.set(["user"], value: "USER")
+        trie.set(["users"], value: "USERS")
+        
+        // Get values along the path "user"
+        let values = trie.getValuesAlongPath("user")
+        
+        // getValuesAlongPath returns values from keys that are prefixes of the path
+        #expect(values.contains("U"))
+        #expect(values.contains("US"))
+        #expect(values.contains("USE"))
+        #expect(values.contains("USER"))
+        // "USERS" should not be included as it's longer than the search path
+        #expect(!values.contains("USERS"))
+    }
+    
+    @Test func testGetValuesAlongPathEmpty() {
+        let trie = ArrayTrie<String>()
+        
+        // Get values from empty trie
+        let values = trie.getValuesAlongPath("anything")
+        
+        // Should return empty array
+        #expect(values.isEmpty)
+    }
+    
+    @Test func testGetValuesAlongPathEmptyString() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie
+        trie.set(["a"], value: "A")
+        trie.set(["b"], value: "B")
+        
+        // Get values along empty path
+        let values = trie.getValuesAlongPath("")
+        
+        // Empty string returns empty array (no keys are prefixes of empty string)
+        #expect(values.isEmpty)
+    }
+    
+    @Test func testGetValuesAlongPathNoMatches() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with values that don't match the search path
+        trie.set(["apple"], value: "APPLE")
+        trie.set(["banana"], value: "BANANA")
+        
+        // Get values along a path that doesn't exist
+        let values = trie.getValuesAlongPath("orange")
+        
+        // Should return empty array
+        #expect(values.isEmpty)
+    }
+    
+    @Test func testGetValuesAlongPathPartialMatches() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with some matching and some non-matching keys
+        trie.set(["test"], value: "TEST")
+        trie.set(["testing"], value: "TESTING")
+        trie.set(["best"], value: "BEST")
+        trie.set(["rest"], value: "REST")
+        trie.set(["te"], value: "TE")
+        trie.set(["t"], value: "T")
+        
+        // Get values along path "test"
+        let values = trie.getValuesAlongPath("test")
+        
+        // Should return values from keys that are prefixes of "test"
+        #expect(values.contains("TEST"))
+        #expect(values.contains("TE"))
+        #expect(values.contains("T"))
+        #expect(!values.contains("TESTING")) // longer than search path
+        #expect(!values.contains("BEST"))
+        #expect(!values.contains("REST"))
+    }
+    
+    @Test func testGetValuesAlongPathMultipleTypes() {
+        var intTrie = ArrayTrie<Int>()
+        var boolTrie = ArrayTrie<Bool>()
+        
+        // Set up tries with different value types
+        intTrie.set(["n"], value: 1)
+        intTrie.set(["nu"], value: 12)
+        intTrie.set(["num"], value: 123)
+        
+        boolTrie.set(["t"], value: true)
+        boolTrie.set(["tr"], value: false)
+        boolTrie.set(["tru"], value: true)
+        
+        // Get values along paths
+        let intValues = intTrie.getValuesAlongPath("num")
+        let boolValues = boolTrie.getValuesAlongPath("tr")
+        
+        // Should return values from keys that are prefixes of the search path
+        #expect(intValues.contains(1))  // "n" is prefix of "num"
+        #expect(intValues.contains(12)) // "nu" is prefix of "num"  
+        #expect(intValues.contains(123)) // "num" matches exactly
+        
+        #expect(boolValues.contains(true))  // "t" is prefix of "tr"
+        #expect(boolValues.contains(false)) // "tr" matches exactly
+    }
+    
+    @Test func testGetValuesAlongPathSpecialCharacters() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with keys containing special characters
+        trie.set(["user@"], value: "USER_AT")
+        trie.set(["user@domain"], value: "USER_AT_DOMAIN")
+        trie.set(["user-"], value: "USER_DASH")
+        trie.set(["user_"], value: "USER_UNDERSCORE")
+        trie.set(["user"], value: "USER")
+        trie.set(["use"], value: "USE")
+        trie.set(["u"], value: "U")
+        
+        // Get values along path with special characters
+        let values = trie.getValuesAlongPath("user@")
+        
+        // Should return values from keys that are prefixes of "user@"
+        #expect(values.contains("USER_AT")) // exact match
+        #expect(values.contains("USER"))    // prefix
+        #expect(values.contains("USE"))     // prefix
+        #expect(values.contains("U"))       // prefix
+        #expect(!values.contains("USER_AT_DOMAIN")) // longer than search path
+        #expect(!values.contains("USER_DASH"))      // not a prefix
+        #expect(!values.contains("USER_UNDERSCORE")) // not a prefix
+    }
+    
+    @Test func testGetValuesAlongPathCaseSensitive() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with case-sensitive keys
+        trie.set(["User"], value: "CAPITAL_USER")
+        trie.set(["user"], value: "LOWERCASE_USER")
+        trie.set(["USER"], value: "UPPER_USER")
+        
+        // Get values along lowercase path
+        let lowerValues = trie.getValuesAlongPath("user")
+        
+        // Should only match exact case
+        #expect(lowerValues.contains("LOWERCASE_USER"))
+        #expect(!lowerValues.contains("CAPITAL_USER"))
+        #expect(!lowerValues.contains("UPPER_USER"))
+        
+        // Get values along uppercase path
+        let upperValues = trie.getValuesAlongPath("USER")
+        
+        // Should only match exact case
+        #expect(upperValues.contains("UPPER_USER"))
+        #expect(!upperValues.contains("LOWERCASE_USER"))
+        #expect(!upperValues.contains("CAPITAL_USER"))
+    }
+    
+    @Test func testGetValuesAlongPathLongString() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with progressively longer keys
+        let baseKey = "verylongkeyname"
+        for i in 1...baseKey.count {
+            let key = String(baseKey.prefix(i))
+            trie.set([key], value: "VALUE_\(i)")
+        }
+        
+        // Get values along the full path
+        let values = trie.getValuesAlongPath(baseKey)
+        
+        // Should return all values along the path
+        #expect(values.count == baseKey.count)
+        for i in 1...baseKey.count {
+            #expect(values.contains("VALUE_\(i)"))
+        }
+    }
+    
+    @Test func testGetValuesAlongPathComplexStructure() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up a complex trie structure
+        trie.set(["a"], value: "A")
+        trie.set(["ab"], value: "AB")
+        trie.set(["abc"], value: "ABC")
+        trie.set(["abcd"], value: "ABCD")
+        trie.set(["ax"], value: "AX")
+        trie.set(["ay"], value: "AY")
+        trie.set(["b"], value: "B")
+        trie.set(["bc"], value: "BC")
+        
+        // Get values along path "abc"
+        let abcValues = trie.getValuesAlongPath("abc")
+        
+        // Should return values from keys that are prefixes of "abc"
+        #expect(abcValues.contains("A"))   // "a" is prefix of "abc"
+        #expect(abcValues.contains("AB"))  // "ab" is prefix of "abc"
+        #expect(abcValues.contains("ABC")) // "abc" matches exactly
+        #expect(!abcValues.contains("ABCD")) // longer than search path
+        #expect(!abcValues.contains("AX"))   // not a prefix
+        #expect(!abcValues.contains("AY"))   // not a prefix
+        #expect(!abcValues.contains("B"))    // not a prefix
+        #expect(!abcValues.contains("BC"))   // not a prefix
+        
+        // Get values along path "a"
+        let aValues = trie.getValuesAlongPath("a")
+        
+        // Should return only values where the key is a prefix of "a"
+        #expect(aValues.contains("A"))       // "a" matches exactly
+        #expect(!aValues.contains("AB"))     // longer than search path
+        #expect(!aValues.contains("ABC"))    // longer than search path
+        #expect(!aValues.contains("ABCD"))   // longer than search path
+        #expect(!aValues.contains("AX"))     // longer than search path
+        #expect(!aValues.contains("AY"))     // longer than search path
+        #expect(!aValues.contains("B"))      // not a prefix
+        #expect(!aValues.contains("BC"))     // not a prefix
+    }
 }

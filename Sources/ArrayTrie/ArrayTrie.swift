@@ -101,6 +101,10 @@ public struct ArrayTrie<Value> {
         children[firstKey]!.set(keys: ArraySlice(path), to: value)
     }
     
+    public func getValuesAlongPath(_ path: String) -> [Value] {
+        return children.getValuesAlongPath(path).filter { $0.prefix.count == 1 }.filter { $0.value != nil }.map { $0.value! }
+    }
+    
     /**
      * Creates a new trie with the specified path deleted.
      * @param path An array of string segments forming the path to delete
@@ -127,7 +131,7 @@ final class ArrayTrieNode<Value> {
     typealias ChildMap = TrieDictionary<ArrayTrieNode<Value>>
     
     /// The prefix path segments leading to this node
-    var prefix: [String]!
+    var prefix: [String]
     
     /// The value stored at this node, if any
     var value: Value?
@@ -356,7 +360,7 @@ final class ArrayTrieNode<Value> {
         newChildren[oldPrefix.first!] = oldNode
         
         // Create a new parent node
-        return Self(prefix: parentPrefix, value: nil as Value?, children: newChildren)
+        return Self(prefix: parentPrefix, value: nil, children: newChildren)
     }
     
     /**

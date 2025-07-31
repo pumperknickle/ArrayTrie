@@ -5,6 +5,21 @@ import TrieDictionary
 /**
  * SIMD-optimized ArrayTrie that uses vectorized operations for string comparisons
  * when dealing with similar-length strings.
+ * 
+ * This implementation leverages Single Instruction, Multiple Data (SIMD) concepts:
+ * - Hash-based prefix comparison for fast rejection of mismatched paths
+ * - Optimized string comparison strategies
+ * - Reduced computational overhead for path matching
+ * 
+ * **Performance Characteristics:**
+ * - Faster path matching through hash-based pre-filtering
+ * - Reduced CPU cycles for string comparisons
+ * - Particularly effective with large numbers of similar-length paths
+ * 
+ * **When to Use:**
+ * - Applications with many similar-length string segments
+ * - Performance-critical path matching scenarios
+ * - Systems where string comparison overhead is significant
  */
 public struct SIMDOptimizedArrayTrie<Value> {
     typealias Node = SIMDOptimizedArrayTrieNode<Value>
@@ -103,6 +118,22 @@ final class SIMDOptimizedArrayTrieNode<Value> {
 /**
  * Path-compressed ArrayTrie that stores only branch points to reduce memory usage
  * and improve cache locality.
+ * 
+ * This implementation uses path compression techniques to optimize storage:
+ * - Stores full paths to leaf nodes rather than individual segments
+ * - Only creates branches when paths diverge
+ * - Eliminates intermediate nodes with single children
+ * - Improves cache locality through reduced node count
+ * 
+ * **Performance Characteristics:**
+ * - Significantly reduced memory usage for sparse tries
+ * - Better cache performance due to fewer nodes
+ * - Excellent for applications with long, unique paths
+ * 
+ * **When to Use:**
+ * - Sparse tries with many long, unique paths
+ * - Memory-constrained environments
+ * - Applications where cache locality is critical
  */
 public struct CompressedPathArrayTrie<Value> {
     typealias Node = CompressedPathArrayTrieNode<Value>
@@ -236,6 +267,28 @@ final class CompressedPathArrayTrieNode<Value> {
 /**
  * Adaptive ArrayTrie that monitors usage patterns and switches between different
  * optimization strategies based on detected patterns.
+ * 
+ * This intelligent implementation automatically adapts its optimization strategy:
+ * - Monitors lookup vs insertion ratios to detect usage patterns
+ * - Switches between memory, speed, compression, and balanced optimizations
+ * - Provides runtime performance metrics and strategy reporting
+ * - Migrates data between different optimization implementations as needed
+ * 
+ * **Optimization Strategies:**
+ * - **Memory**: For insertion-heavy workloads requiring minimal memory usage
+ * - **Speed**: For lookup-heavy workloads requiring maximum performance
+ * - **Compressed**: For sparse access patterns with infrequent operations
+ * - **Balanced**: For mixed workloads with no clear pattern
+ * 
+ * **Performance Characteristics:**
+ * - Self-optimizing based on actual usage patterns
+ * - Minimal performance overhead for strategy detection
+ * - Excellent for applications with changing access patterns
+ * 
+ * **When to Use:**
+ * - Applications with unknown or changing access patterns
+ * - Long-running systems that need to adapt over time
+ * - Scenarios where optimal strategy is not known upfront
  */
 public struct AdaptiveArrayTrie<Value> {
     private enum OptimizationStrategy {
@@ -373,7 +426,29 @@ public struct AdaptiveArrayTrie<Value> {
 // MARK: - Concurrent ArrayTrie (thread-safe operations)
 
 /**
- * Thread-safe ArrayTrie implementation using read-write locks for concurrent access.
+ * Thread-safe ArrayTrie implementation using Swift's actor model for concurrent access.
+ * 
+ * This implementation provides thread-safe operations through Swift's actor system:
+ * - All operations are automatically serialized through the actor
+ * - Supports async/await patterns for concurrent programming
+ * - Provides batch operations for improved performance
+ * - Tracks access metrics for performance monitoring
+ * 
+ * **Concurrency Features:**
+ * - Thread-safe get and set operations
+ * - Batch operations to reduce actor hop overhead
+ * - Access count tracking for performance analysis
+ * - Actor-based isolation ensures data race safety
+ * 
+ * **Performance Characteristics:**
+ * - Excellent for concurrent read/write scenarios
+ * - Batch operations reduce serialization overhead
+ * - Built-in metrics for concurrent access patterns
+ * 
+ * **When to Use:**
+ * - Multi-threaded applications requiring shared trie access
+ * - Concurrent systems with mixed read/write patterns
+ * - Applications built with Swift's structured concurrency
  */
 public actor ConcurrentArrayTrie<Value: Sendable> {
     private var storage: ArrayTrie<Value>

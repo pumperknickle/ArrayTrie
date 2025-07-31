@@ -5,31 +5,78 @@ import TrieDictionary
 /**
  * Memory-optimized version of ArrayTrie that focuses on reducing allocations
  * and improving memory layout efficiency.
+ * 
+ * This implementation provides several key optimizations over the standard ArrayTrie:
+ * - Eliminates Optional overhead by using non-optional stored properties where possible
+ * - Reduces ArraySlice allocations through manual index manipulation
+ * - Improves memory packing and cache locality
+ * - Uses computed properties to maintain API compatibility while optimizing storage
+ * 
+ * **Performance Characteristics:**
+ * - Lower memory footprint compared to standard ArrayTrie
+ * - Faster operations on large datasets due to reduced allocations
+ * - Better cache locality for traversal operations
+ * 
+ * **When to Use:**
+ * - Memory-constrained environments
+ * - Large datasets where allocation overhead is significant
+ * - Applications requiring optimal memory usage patterns
  */
 public struct MemoryOptimizedArrayTrie<Value> {
     typealias Node = MemoryOptimizedArrayTrieNode<Value>
     typealias ChildMap = TrieDictionary<MemoryOptimizedArrayTrieNode<Value>>
     
+    /// Dictionary of child nodes, optimized for memory efficiency
     var children: ChildMap
     
+    /**
+     * Internal initializer for creating a trie with existing children.
+     * 
+     * - Parameter children: Pre-existing child nodes to initialize with
+     */
     init(children: ChildMap) {
         self.children = children
     }
     
+    /**
+     * Creates an empty memory-optimized trie.
+     * 
+     * - Returns: A new empty trie ready for use
+     */
     public init() {
         self = Self(children: [:])
     }
     
+    /**
+     * Checks if the trie contains any stored values.
+     * 
+     * - Returns: `true` if the trie has no children, `false` otherwise
+     * - Complexity: O(1)
+     */
     public func isEmpty() -> Bool {
         return children.count == 0
     }
     
+    /**
+     * Retrieves a value from the trie at the specified path with optimized memory access.
+     * 
+     * - Parameter path: Array of string segments forming the path to the value
+     * - Returns: The value at the specified path, or `nil` if not found
+     * - Complexity: O(k) where k is the path length
+     */
     public func get(_ path: [String]) -> Value? {
         guard let firstKey = path.first else { return nil }
         guard let root = children[firstKey] else { return nil }
         return root.get(path: path)
     }
     
+    /**
+     * Sets a value in the trie at the specified path using memory-optimized operations.
+     * 
+     * - Parameter path: Array of string segments forming the path to set
+     * - Parameter value: The value to store at the specified path
+     * - Complexity: O(k) where k is the path length
+     */
     public mutating func set(_ path: [String], value: Value) {
         guard let firstKey = path.first else { return }
         if children[firstKey] == nil {
@@ -187,6 +234,22 @@ final class MemoryOptimizedArrayTrieNode<Value> {
 
 /**
  * Algorithmically optimized ArrayTrie with improved search and traversal strategies.
+ * 
+ * This implementation provides algorithmic optimizations including:
+ * - Access pattern caching for frequently requested paths
+ * - Iterative vs recursive traversal based on trie depth
+ * - Cache efficiency monitoring and reporting
+ * - Smart path matching strategies
+ * 
+ * **Performance Characteristics:**
+ * - Faster lookups for frequently accessed paths through caching
+ * - Reduced call stack overhead for shallow tries
+ * - Better performance monitoring capabilities
+ * 
+ * **When to Use:**
+ * - Applications with predictable access patterns
+ * - Performance-critical scenarios requiring optimal lookup times
+ * - Systems where cache hit ratios can be leveraged
  */
 public struct AlgorithmicOptimizedArrayTrie<Value> {
     typealias Node = AlgorithmicOptimizedArrayTrieNode<Value>
@@ -362,6 +425,22 @@ final class AlgorithmicOptimizedArrayTrieNode<Value> {
 
 /**
  * Copy-on-Write optimized ArrayTrie to reduce unnecessary copying in immutable operations.
+ * 
+ * This implementation uses copy-on-write semantics to optimize memory usage and performance:
+ * - Shares storage between trie instances until mutation occurs
+ * - Only creates copies when actual modifications are made
+ * - Maintains value semantics while optimizing for common usage patterns
+ * - Reduces memory pressure in scenarios with many trie copies
+ * 
+ * **Performance Characteristics:**
+ * - Excellent performance for read-heavy workloads with occasional mutations
+ * - Minimal memory overhead when creating trie copies
+ * - Optimal for functional programming patterns
+ * 
+ * **When to Use:**
+ * - Functional programming contexts requiring immutable data structures
+ * - Applications that frequently copy tries but rarely modify them
+ * - Memory-constrained environments with shared data structures
  */
 public struct COWOptimizedArrayTrie<Value> {
     private var storage: COWStorage<Value>
