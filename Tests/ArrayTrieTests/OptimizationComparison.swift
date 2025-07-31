@@ -131,40 +131,34 @@ import TrieDictionary
         print("\n=== Memory Usage Comparison ===")
         
         // Original ArrayTrie
-        autoreleasepool {
-            let memoryBefore = getMemoryUsage()
-            var trie = ArrayTrie<String>()
-            for (index, path) in paths.enumerated() {
-                trie.set(path, value: "value\(index)")
-            }
-            let memoryAfter = getMemoryUsage()
-            print("Original ArrayTrie: \(memoryAfter - memoryBefore) KB")
-            _ = trie // Keep reference until measurement
+        let memoryBefore = getMemoryUsage()
+        var trie = ArrayTrie<String>()
+        for (index, path) in paths.enumerated() {
+            trie.set(path, value: "value\(index)")
         }
+        let memoryAfter = getMemoryUsage()
+        print("Original ArrayTrie: \(memoryAfter - memoryBefore) KB")
+        _ = trie // Keep reference until measurement
         
         // Memory Optimized
-        autoreleasepool {
-            let memoryBefore = getMemoryUsage()
-            var trie = MemoryOptimizedArrayTrie<String>()
-            for (index, path) in paths.enumerated() {
-                trie.set(path, value: "value\(index)")
-            }
-            let memoryAfter = getMemoryUsage()
-            print("Memory Optimized: \(memoryAfter - memoryBefore) KB")
-            _ = trie
+        let memoryBefore2 = getMemoryUsage()
+        var trie2 = MemoryOptimizedArrayTrie<String>()
+        for (index, path) in paths.enumerated() {
+            trie2.set(path, value: "value\(index)")
         }
+        let memoryAfter2 = getMemoryUsage()
+        print("Memory Optimized: \(memoryAfter2 - memoryBefore2) KB")
+        _ = trie2
         
         // COW Optimized
-        autoreleasepool {
-            let memoryBefore = getMemoryUsage()
-            var trie = COWOptimizedArrayTrie<String>()
-            for (index, path) in paths.enumerated() {
-                trie.set(path, value: "value\(index)")
-            }
-            let memoryAfter = getMemoryUsage()
-            print("COW Optimized: \(memoryAfter - memoryBefore) KB")
-            _ = trie
+        let memoryBefore3 = getMemoryUsage()
+        var trie3 = COWOptimizedArrayTrie<String>()
+        for (index, path) in paths.enumerated() {
+            trie3.set(path, value: "value\(index)")
         }
+        let memoryAfter3 = getMemoryUsage()
+        print("COW Optimized: \(memoryAfter3 - memoryBefore3) KB")
+        _ = trie3
     }
     
     // MARK: - Specific Optimization Tests

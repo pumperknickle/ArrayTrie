@@ -223,36 +223,34 @@ import TrieDictionary
     
     private func compareMemoryPerformance(data: TestDataSet) async -> MemoryComparisonResult {
         // Test original implementation
-        autoreleasepool {
-            let memoryBefore = getMemoryUsage()
-            var originalTrie = ArrayTrie<String>()
-            
-            let allPaths = data.api + data.filesystem + data.deep + data.commonPrefix
-            for (index, path) in allPaths.enumerated() {
-                originalTrie.set(path, value: "value\(index)")
-            }
-            
-            let originalMemory = getMemoryUsage() - memoryBefore
-            
-            // Test optimized implementation
-            let memoryBefore2 = getMemoryUsage() 
-            var optimizedTrie = MemoryOptimizedArrayTrie<String>()
-            
-            for (index, path) in allPaths.enumerated() {
-                optimizedTrie.set(path, value: "value\(index)")
-            }
-            
-            let optimizedMemory = getMemoryUsage() - memoryBefore2
-            
-            let improvement = originalMemory > optimizedMemory ? 
-                Double(originalMemory - optimizedMemory) / Double(originalMemory) : 0.0
-            
-            return MemoryComparisonResult(
-                original: originalMemory,
-                optimized: optimizedMemory,
-                improvement: improvement
-            )
+        let memoryBefore = getMemoryUsage()
+        var originalTrie = ArrayTrie<String>()
+        
+        let allPaths = data.api + data.filesystem + data.deep + data.commonPrefix
+        for (index, path) in allPaths.enumerated() {
+            originalTrie.set(path, value: "value\(index)")
         }
+        
+        let originalMemory = getMemoryUsage() - memoryBefore
+        
+        // Test optimized implementation
+        let memoryBefore2 = getMemoryUsage() 
+        var optimizedTrie = MemoryOptimizedArrayTrie<String>()
+        
+        for (index, path) in allPaths.enumerated() {
+            optimizedTrie.set(path, value: "value\(index)")
+        }
+        
+        let optimizedMemory = getMemoryUsage() - memoryBefore2
+        
+        let improvement = originalMemory > optimizedMemory ? 
+            Double(originalMemory - optimizedMemory) / Double(originalMemory) : 0.0
+        
+        return MemoryComparisonResult(
+            original: originalMemory,
+            optimized: optimizedMemory,
+            improvement: improvement
+        )
     }
     
     private func compareAlgorithmicPerformance(data: TestDataSet) async -> AlgorithmicComparisonResult {
