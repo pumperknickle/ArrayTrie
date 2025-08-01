@@ -1,6 +1,38 @@
 import TrieDictionary
 
 /**
+ * Enumeration representing the relationship between two array prefixes.
+ */
+private enum PrefixComparison {
+    case equal          // Prefixes are identical
+    case firstIsPrefix  // First prefix is a subset of second
+    case secondIsPrefix // Second prefix is a subset of first
+    case divergent      // Prefixes share a common prefix but then diverge
+}
+
+/**
+ * Compares two string arrays to determine their prefix relationship.
+ * @param a The first array to compare
+ * @param b The second array to compare
+ * @return The relationship between the two arrays
+ */
+private func compareArrayPrefixes(_ a: [String], _ b: [String]) -> PrefixComparison {
+    let sliceA = ArraySlice(a)
+    let sliceB = ArraySlice(b)
+    let commonPrefix = sliceA.longestCommonPrefix(sliceB)
+    
+    if commonPrefix.count == a.count && commonPrefix.count == b.count {
+        return .equal
+    } else if commonPrefix.count == a.count {
+        return .firstIsPrefix
+    } else if commonPrefix.count == b.count {
+        return .secondIsPrefix
+    } else {
+        return .divergent
+    }
+}
+
+/**
  * ArrayTrie - A trie data structure implementation that uses arrays of strings as keys.
  * This differs from traditional tries which typically use single characters as keys.
  * Instead, this implementation uses whole strings for each segment of the path.
@@ -101,8 +133,8 @@ public struct ArrayTrie<Value> {
         children[firstKey]!.set(keys: ArraySlice(path), to: value)
     }
     
-    public func getValuesAlongPath(_ path: String) -> [Value] {
-        return children.getValuesAlongPath(path).filter { $0.prefix.count == 1 }.filter { $0.value != nil }.map { $0.value! }
+    public func getValuesAlongPath(_ path: String) -> [(Self, Value)] {
+        return children.getValuesAlongPath(path).filter { $0.prefix.count == 1 }.filter { $0.value != nil }.map { (Self(children: $0.children), $0.value!) }
     }
     
     /**
@@ -119,6 +151,19 @@ public struct ArrayTrie<Value> {
     public func traverse(path: String) -> Self? {
         let traversed = children.traverse(path)
         return traversed.isEmpty ? nil : Self(children: traversed)
+    }
+    
+    /**
+     * Merges this trie with another trie using the specified merge rule.
+     * @param other The other trie to merge with
+     * @param mergeRule A function that combines values when both tries contain the same path
+     * @return A new trie containing the merged result
+     */
+    public func merging(with other: ArrayTrie<Value>, mergeRule: (Value, Value) -> Value) -> ArrayTrie<Value> {
+        let mergedChildren = children.merge(other: other.children) { selfChild, otherChild in
+            selfChild.merging(with: otherChild, mergeRule: mergeRule)
+        }
+        return ArrayTrie(children: mergedChildren)
     }
 }
 
@@ -147,7 +192,7 @@ final class ArrayTrieNode<Value> {
         self.value = value
         self.children = children
     }
-    
+        
     /**
      * Retrieves a child node by key.
      * @param key The key for the child to retrieve
@@ -390,6 +435,94 @@ final class ArrayTrieNode<Value> {
         
         // Recursively traverse in the matching child node
         return child.traverse(suffix)
+    }
+    
+    /**
+     * Merges this node with another node using the specified merge rule.
+     * @param other The other node to merge with
+     * @param mergeRule A function that combines values when both nodes have values
+     * @return A new node containing the merged result
+     */
+    func merging(with other: ArrayTrieNode<Value>, mergeRule: (Value, Value) -> Value) -> ArrayTrieNode<Value> {
+        let comparison = compareArrayPrefixes(self.prefix, other.prefix)
+        
+        switch comparison {
+        case .equal:
+            // Prefixes are identical - merge values and children directly
+            let mergedValue: Value?
+            if let selfValue = self.value, let otherValue = other.value {
+                mergedValue = mergeRule(selfValue, otherValue)
+            } else {
+                mergedValue = self.value ?? other.value
+            }
+            
+            // Merge children by combining both child maps
+            let mergedChildren = self.children.merge(other: other.children) { selfChildren, otherChildren in
+                selfChildren.merging(with: otherChildren, mergeRule: mergeRule)
+            }
+            
+            return ArrayTrieNode(prefix: self.prefix, value: mergedValue, children: mergedChildren)
+            
+        case .firstIsPrefix:
+            // Self prefix is a subset of other - restructure with self as parent
+            let otherSuffix = Array(other.prefix.dropFirst(self.prefix.count))
+            let otherChildKey = otherSuffix.first!
+            let otherChildNode = ArrayTrieNode(prefix: otherSuffix, value: other.value, children: other.children)
+            
+            // Merge with existing child if it exists
+            let mergedChildren: ChildMap
+            if let existingChild = self.children[otherChildKey] {
+                let mergedChild = existingChild.merging(with: otherChildNode, mergeRule: mergeRule)
+                var result = self.children
+                result[otherChildKey] = mergedChild
+                mergedChildren = result
+            } else {
+                var result = self.children
+                result[otherChildKey] = otherChildNode
+                mergedChildren = result
+            }
+            
+            return ArrayTrieNode(prefix: self.prefix, value: self.value, children: mergedChildren)
+            
+        case .secondIsPrefix:
+            // Other prefix is a subset of self - restructure with other as parent
+            let selfSuffix = Array(self.prefix.dropFirst(other.prefix.count))
+            let selfChildKey = selfSuffix.first!
+            let selfChildNode = ArrayTrieNode(prefix: selfSuffix, value: self.value, children: self.children)
+            
+            // Merge with existing child if it exists
+            let mergedChildren: ChildMap
+            if let existingChild = other.children[selfChildKey] {
+                let mergedChild = existingChild.merging(with: selfChildNode, mergeRule: mergeRule)
+                var result = other.children
+                result[selfChildKey] = mergedChild
+                mergedChildren = result
+            } else {
+                var result = other.children
+                result[selfChildKey] = selfChildNode
+                mergedChildren = result
+            }
+            
+            return ArrayTrieNode(prefix: other.prefix, value: other.value, children: mergedChildren)
+            
+        case .divergent:
+            // Prefixes diverge - find common prefix and create split structure
+            let commonPrefix = ArraySlice(self.prefix).longestCommonPrefix(ArraySlice(other.prefix))
+            let selfSuffix = Array(self.prefix.dropFirst(commonPrefix.count))
+            let otherSuffix = Array(other.prefix.dropFirst(commonPrefix.count))
+            
+            let selfChildKey = selfSuffix.first!
+            let otherChildKey = otherSuffix.first!
+            
+            let selfChildNode = ArrayTrieNode(prefix: selfSuffix, value: self.value, children: self.children)
+            let otherChildNode = ArrayTrieNode(prefix: otherSuffix, value: other.value, children: other.children)
+            
+            var newChildren: ChildMap = [:]
+            newChildren[selfChildKey] = selfChildNode
+            newChildren[otherChildKey] = otherChildNode
+            
+            return ArrayTrieNode(prefix: commonPrefix, value: nil, children: newChildren)
+        }
     }
     
     /**

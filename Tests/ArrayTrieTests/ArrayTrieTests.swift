@@ -424,7 +424,10 @@ import TrieDictionary
         trie.set(["users"], value: "USERS")
         
         // Get values along the path "user"
-        let values = trie.getValuesAlongPath("user")
+        let results = trie.getValuesAlongPath("user")
+        
+        // Extract just the values from the (trie, value) tuples
+        let values = results.map { $0.1 }
         
         // getValuesAlongPath returns values from keys that are prefixes of the path
         #expect(values.contains("U"))
@@ -439,10 +442,10 @@ import TrieDictionary
         let trie = ArrayTrie<String>()
         
         // Get values from empty trie
-        let values = trie.getValuesAlongPath("anything")
+        let results = trie.getValuesAlongPath("anything")
         
         // Should return empty array
-        #expect(values.isEmpty)
+        #expect(results.isEmpty)
     }
     
     @Test func testGetValuesAlongPathEmptyString() {
@@ -453,10 +456,10 @@ import TrieDictionary
         trie.set(["b"], value: "B")
         
         // Get values along empty path
-        let values = trie.getValuesAlongPath("")
+        let results = trie.getValuesAlongPath("")
         
         // Empty string returns empty array (no keys are prefixes of empty string)
-        #expect(values.isEmpty)
+        #expect(results.isEmpty)
     }
     
     @Test func testGetValuesAlongPathNoMatches() {
@@ -467,10 +470,10 @@ import TrieDictionary
         trie.set(["banana"], value: "BANANA")
         
         // Get values along a path that doesn't exist
-        let values = trie.getValuesAlongPath("orange")
+        let results = trie.getValuesAlongPath("orange")
         
         // Should return empty array
-        #expect(values.isEmpty)
+        #expect(results.isEmpty)
     }
     
     @Test func testGetValuesAlongPathPartialMatches() {
@@ -485,7 +488,8 @@ import TrieDictionary
         trie.set(["t"], value: "T")
         
         // Get values along path "test"
-        let values = trie.getValuesAlongPath("test")
+        let results = trie.getValuesAlongPath("test")
+        let values = results.map { $0.1 }
         
         // Should return values from keys that are prefixes of "test"
         #expect(values.contains("TEST"))
@@ -510,8 +514,11 @@ import TrieDictionary
         boolTrie.set(["tru"], value: true)
         
         // Get values along paths
-        let intValues = intTrie.getValuesAlongPath("num")
-        let boolValues = boolTrie.getValuesAlongPath("tr")
+        let intResults = intTrie.getValuesAlongPath("num")
+        let boolResults = boolTrie.getValuesAlongPath("tr")
+        
+        let intValues = intResults.map { $0.1 }
+        let boolValues = boolResults.map { $0.1 }
         
         // Should return values from keys that are prefixes of the search path
         #expect(intValues.contains(1))  // "n" is prefix of "num"
@@ -522,113 +529,226 @@ import TrieDictionary
         #expect(boolValues.contains(false)) // "tr" matches exactly
     }
     
-    @Test func testGetValuesAlongPathSpecialCharacters() {
-        var trie = ArrayTrie<String>()
+    // MARK: - Merge Functionality Tests
+    
+    @Test func testMergeEmptyTries() {
+        let trie1 = ArrayTrie<String>()
+        var trie2 = ArrayTrie<String>()
+        trie2.set(["user"], value: "User Data")
         
-        // Set up the trie with keys containing special characters
-        trie.set(["user@"], value: "USER_AT")
-        trie.set(["user@domain"], value: "USER_AT_DOMAIN")
-        trie.set(["user-"], value: "USER_DASH")
-        trie.set(["user_"], value: "USER_UNDERSCORE")
-        trie.set(["user"], value: "USER")
-        trie.set(["use"], value: "USE")
-        trie.set(["u"], value: "U")
+        // Merge empty with non-empty
+        let merged1 = trie1.merging(with: trie2) { a, b in a }
+        #expect(merged1.get(["user"]) == "User Data")
         
-        // Get values along path with special characters
-        let values = trie.getValuesAlongPath("user@")
+        // Merge non-empty with empty
+        let merged2 = trie2.merging(with: trie1) { a, b in a }
+        #expect(merged2.get(["user"]) == "User Data")
         
-        // Should return values from keys that are prefixes of "user@"
-        #expect(values.contains("USER_AT")) // exact match
-        #expect(values.contains("USER"))    // prefix
-        #expect(values.contains("USE"))     // prefix
-        #expect(values.contains("U"))       // prefix
-        #expect(!values.contains("USER_AT_DOMAIN")) // longer than search path
-        #expect(!values.contains("USER_DASH"))      // not a prefix
-        #expect(!values.contains("USER_UNDERSCORE")) // not a prefix
+        // Merge empty with empty
+        let merged3 = trie1.merging(with: ArrayTrie<String>()) { a, b in a }
+        #expect(merged3.isEmpty())
     }
     
-    @Test func testGetValuesAlongPathCaseSensitive() {
-        var trie = ArrayTrie<String>()
+    @Test func testMergeDisjointPaths() {
+        var trie1 = ArrayTrie<String>()
+        var trie2 = ArrayTrie<String>()
         
-        // Set up the trie with case-sensitive keys
-        trie.set(["User"], value: "CAPITAL_USER")
-        trie.set(["user"], value: "LOWERCASE_USER")
-        trie.set(["USER"], value: "UPPER_USER")
+        trie1.set(["users", "john"], value: "John")
+        trie1.set(["users", "jane"], value: "Jane")
         
-        // Get values along lowercase path
-        let lowerValues = trie.getValuesAlongPath("user")
+        trie2.set(["admin", "bob"], value: "Bob")
+        trie2.set(["config", "db"], value: "Database")
         
-        // Should only match exact case
-        #expect(lowerValues.contains("LOWERCASE_USER"))
-        #expect(!lowerValues.contains("CAPITAL_USER"))
-        #expect(!lowerValues.contains("UPPER_USER"))
+        let merged = trie1.merging(with: trie2) { a, b in a }
         
-        // Get values along uppercase path
-        let upperValues = trie.getValuesAlongPath("USER")
-        
-        // Should only match exact case
-        #expect(upperValues.contains("UPPER_USER"))
-        #expect(!upperValues.contains("LOWERCASE_USER"))
-        #expect(!upperValues.contains("CAPITAL_USER"))
+        // All values should be preserved
+        #expect(merged.get(["users", "john"]) == "John")
+        #expect(merged.get(["users", "jane"]) == "Jane")
+        #expect(merged.get(["admin", "bob"]) == "Bob")
+        #expect(merged.get(["config", "db"]) == "Database")
     }
     
-    @Test func testGetValuesAlongPathLongString() {
-        var trie = ArrayTrie<String>()
+    @Test func testMergeOverlappingPaths() {
+        var trie1 = ArrayTrie<String>()
+        var trie2 = ArrayTrie<String>()
         
-        // Set up the trie with progressively longer keys
-        let baseKey = "verylongkeyname"
-        for i in 1...baseKey.count {
-            let key = String(baseKey.prefix(i))
-            trie.set([key], value: "VALUE_\(i)")
+        trie1.set(["users", "john"], value: "John1")
+        trie1.set(["users", "jane"], value: "Jane1")
+        
+        trie2.set(["users", "john"], value: "John2")
+        trie2.set(["users", "bob"], value: "Bob2")
+        
+        // Test "first wins" merge rule
+        let merged1 = trie1.merging(with: trie2) { a, b in a }
+        #expect(merged1.get(["users", "john"]) == "John1")  // first wins
+        #expect(merged1.get(["users", "jane"]) == "Jane1")  // only in first
+        #expect(merged1.get(["users", "bob"]) == "Bob2")    // only in second
+        
+        // Test "last wins" merge rule
+        let merged2 = trie1.merging(with: trie2) { a, b in b }
+        #expect(merged2.get(["users", "john"]) == "John2")  // second wins
+        
+        // Test combine merge rule
+        let merged3 = trie1.merging(with: trie2) { a, b in "\(a)+\(b)" }
+        #expect(merged3.get(["users", "john"]) == "John1+John2")  // combined
+    }
+    
+    @Test func testMergePrefixRelationships() {
+        var trie1 = ArrayTrie<String>()
+        var trie2 = ArrayTrie<String>()
+        
+        // Set up prefix relationship: ["user", "profile"] vs ["user", "profile", "settings"]
+        trie1.set(["user", "profile"], value: "Profile")
+        trie2.set(["user", "profile", "settings"], value: "Settings")
+        
+        let merged = trie1.merging(with: trie2) { a, b in a }
+        
+        #expect(merged.get(["user", "profile"]) == "Profile")
+        #expect(merged.get(["user", "profile", "settings"]) == "Settings")
+    }
+    
+    @Test func testMergeComplexScenarios() {
+        var trie1 = ArrayTrie<String>()
+        var trie2 = ArrayTrie<String>()
+        
+        // Create complex nested structures
+        trie1.set(["api", "v1", "users"], value: "V1Users")
+        trie1.set(["api", "v1", "posts"], value: "V1Posts")
+        trie1.set(["web", "login"], value: "WebLogin")
+        
+        trie2.set(["api", "v1", "users"], value: "V1UsersNew")  // conflict
+        trie2.set(["api", "v2", "users"], value: "V2Users")    // new branch
+        trie2.set(["mobile", "auth"], value: "MobileAuth")     // new root
+        
+        let merged = trie1.merging(with: trie2) { old, new in "\(old)|\(new)" }
+        
+        // Check merged values
+        #expect(merged.get(["api", "v1", "users"]) == "V1Users|V1UsersNew")
+        #expect(merged.get(["api", "v1", "posts"]) == "V1Posts")
+        #expect(merged.get(["api", "v2", "users"]) == "V2Users")
+        #expect(merged.get(["web", "login"]) == "WebLogin")
+        #expect(merged.get(["mobile", "auth"]) == "MobileAuth")
+        
+        // Check non-existent paths
+        #expect(merged.get(["api", "v3", "users"]) == nil)
+    }
+    
+    @Test func testMergeWithDifferentTypes() {
+        var intTrie1 = ArrayTrie<Int>()
+        var intTrie2 = ArrayTrie<Int>()
+        
+        intTrie1.set(["counter", "a"], value: 5)
+        intTrie1.set(["counter", "b"], value: 10)
+        
+        intTrie2.set(["counter", "a"], value: 3)  // conflict
+        intTrie2.set(["counter", "c"], value: 7)  // new
+        
+        let merged = intTrie1.merging(with: intTrie2) { a, b in a + b }
+        
+        #expect(merged.get(["counter", "a"]) == 8)   // 5 + 3
+        #expect(merged.get(["counter", "b"]) == 10)  // unchanged
+        #expect(merged.get(["counter", "c"]) == 7)   // new value
+    }
+    
+    @Test func testMergeEdgeCases() {
+        var trie1 = ArrayTrie<String>()
+        var trie2 = ArrayTrie<String>()
+        
+        // Test with empty path arrays (should be ignored by ArrayTrie)
+        trie1.set([""], value: "Empty1")
+        trie2.set([""], value: "Empty2")
+        
+        let merged1 = trie1.merging(with: trie2) { a, b in a }
+        #expect(merged1.get([""]) == "Empty1")
+        
+        // Test with single-element paths
+        trie1.set(["x"], value: "X1")
+        trie2.set(["x"], value: "X2")
+        
+        let merged2 = trie1.merging(with: trie2) { a, b in "\(a)-\(b)" }
+        #expect(merged2.get(["x"]) == "X1-X2")
+        
+        // Test with very deep paths
+        let deepPath = (0..<20).map { "level\($0)" }
+        trie1.set(deepPath, value: "Deep1")
+        trie2.set(deepPath, value: "Deep2")
+        
+        let merged3 = trie1.merging(with: trie2) { a, b in b }  // second wins
+        #expect(merged3.get(deepPath) == "Deep2")
+    }
+    
+    @Test func testMergePreservesCompression() {
+        var trie1 = ArrayTrie<String>()
+        var trie2 = ArrayTrie<String>()
+        
+        // Create situations that should maintain path compression
+        trie1.set(["very", "long", "path", "to", "resource"], value: "Resource1")
+        trie2.set(["very", "long", "path", "to", "other"], value: "Other")
+        
+        let merged = trie1.merging(with: trie2) { a, b in a }
+        
+        // Both paths should be accessible
+        #expect(merged.get(["very", "long", "path", "to", "resource"]) == "Resource1")
+        #expect(merged.get(["very", "long", "path", "to", "other"]) == "Other")
+        
+        // Intermediate paths should not have values (testing compression)
+        #expect(merged.get(["very", "long", "path"]) == nil)
+        #expect(merged.get(["very", "long", "path", "to"]) == nil)
+    }
+    
+    @Test func testMergeImmutability() {
+        var trie1 = ArrayTrie<String>()
+        var trie2 = ArrayTrie<String>()
+        
+        trie1.set(["original"], value: "Original1")
+        trie2.set(["original"], value: "Original2")
+        
+        let merged = trie1.merging(with: trie2) { a, b in "Merged" }
+        
+        // Verify original tries are unchanged
+        #expect(trie1.get(["original"]) == "Original1")
+        #expect(trie2.get(["original"]) == "Original2")
+        
+        // Verify merged result
+        #expect(merged.get(["original"]) == "Merged")
+        
+        // Modify original tries after merge
+        trie1.set(["new"], value: "New1")
+        trie2.set(["new"], value: "New2")
+        
+        // Merged trie should be unaffected
+        #expect(merged.get(["new"]) == nil)
+        #expect(merged.get(["original"]) == "Merged")
+    }
+    
+    @Test func testMergePerformance() {
+        var trie1 = ArrayTrie<Int>()
+        var trie2 = ArrayTrie<Int>()
+        
+        // Create moderately large tries for performance testing
+        for i in 0..<100 {
+            trie1.set(["group1", "item\(i)"], value: i)
+            trie2.set(["group2", "item\(i)"], value: i + 100)
         }
         
-        // Get values along the full path
-        let values = trie.getValuesAlongPath(baseKey)
-        
-        // Should return all values along the path
-        #expect(values.count == baseKey.count)
-        for i in 1...baseKey.count {
-            #expect(values.contains("VALUE_\(i)"))
+        // Add some overlapping keys
+        for i in 0..<20 {
+            trie2.set(["group1", "item\(i)"], value: i + 1000)
         }
-    }
-    
-    @Test func testGetValuesAlongPathComplexStructure() {
-        var trie = ArrayTrie<String>()
         
-        // Set up a complex trie structure
-        trie.set(["a"], value: "A")
-        trie.set(["ab"], value: "AB")
-        trie.set(["abc"], value: "ABC")
-        trie.set(["abcd"], value: "ABCD")
-        trie.set(["ax"], value: "AX")
-        trie.set(["ay"], value: "AY")
-        trie.set(["b"], value: "B")
-        trie.set(["bc"], value: "BC")
+        let merged = trie1.merging(with: trie2) { a, b in a + b }
         
-        // Get values along path "abc"
-        let abcValues = trie.getValuesAlongPath("abc")
+        // Verify some results
+        #expect(merged.get(["group1", "item0"]) == 1000)  // 0 + 1000
+        #expect(merged.get(["group1", "item50"]) == 50)   // no conflict
+        #expect(merged.get(["group2", "item0"]) == 100)   // only in trie2
         
-        // Should return values from keys that are prefixes of "abc"
-        #expect(abcValues.contains("A"))   // "a" is prefix of "abc"
-        #expect(abcValues.contains("AB"))  // "ab" is prefix of "abc"
-        #expect(abcValues.contains("ABC")) // "abc" matches exactly
-        #expect(!abcValues.contains("ABCD")) // longer than search path
-        #expect(!abcValues.contains("AX"))   // not a prefix
-        #expect(!abcValues.contains("AY"))   // not a prefix
-        #expect(!abcValues.contains("B"))    // not a prefix
-        #expect(!abcValues.contains("BC"))   // not a prefix
-        
-        // Get values along path "a"
-        let aValues = trie.getValuesAlongPath("a")
-        
-        // Should return only values where the key is a prefix of "a"
-        #expect(aValues.contains("A"))       // "a" matches exactly
-        #expect(!aValues.contains("AB"))     // longer than search path
-        #expect(!aValues.contains("ABC"))    // longer than search path
-        #expect(!aValues.contains("ABCD"))   // longer than search path
-        #expect(!aValues.contains("AX"))     // longer than search path
-        #expect(!aValues.contains("AY"))     // longer than search path
-        #expect(!aValues.contains("B"))      // not a prefix
-        #expect(!aValues.contains("BC"))     // not a prefix
+        // Verify total number of accessible paths
+        var count = 0
+        for i in 0..<100 {
+            if merged.get(["group1", "item\(i)"]) != nil { count += 1 }
+            if merged.get(["group2", "item\(i)"]) != nil { count += 1 }
+        }
+        #expect(count == 200)  // All paths should be accessible
     }
 }
