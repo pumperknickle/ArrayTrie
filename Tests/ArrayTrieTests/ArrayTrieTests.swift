@@ -751,4 +751,268 @@ import TrieDictionary
         }
         #expect(count == 200)  // All paths should be accessible
     }
+    
+    // MARK: - MergeAll Static Method Tests
+    
+    @Test func testMergeAllEmptyArray() {
+        let result = ArrayTrie<String>.mergeAll(tries: []) { a, b in a }
+        
+        #expect(result.isEmpty())
+        #expect(result.get(["any", "path"]) == nil)
+    }
+    
+    @Test func testMergeAllSingleTrie() {
+        var trie = ArrayTrie<String>()
+        trie.set(["user", "name"], value: "John")
+        trie.set(["user", "age"], value: "30")
+        trie.set(["config", "debug"], value: "true")
+        
+        let result = ArrayTrie<String>.mergeAll(tries: [trie]) { a, b in a }
+        
+        #expect(result.get(["user", "name"]) == "John")
+        #expect(result.get(["user", "age"]) == "30")
+        #expect(result.get(["config", "debug"]) == "true")
+    }
+    
+    @Test func testMergeAllTwoTries() {
+        var trie1 = ArrayTrie<String>()
+        var trie2 = ArrayTrie<String>()
+        
+        trie1.set(["users", "john"], value: "John1")
+        trie1.set(["users", "jane"], value: "Jane1")
+        
+        trie2.set(["users", "bob"], value: "Bob2")
+        trie2.set(["config", "mode"], value: "prod")
+        
+        let result = ArrayTrie<String>.mergeAll(tries: [trie1, trie2]) { a, b in a }
+        
+        #expect(result.get(["users", "john"]) == "John1")
+        #expect(result.get(["users", "jane"]) == "Jane1")
+        #expect(result.get(["users", "bob"]) == "Bob2")
+        #expect(result.get(["config", "mode"]) == "prod")
+    }
+    
+    @Test func testMergeAllMultipleDisjointTries() {
+        var trie1 = ArrayTrie<String>()
+        var trie2 = ArrayTrie<String>()
+        var trie3 = ArrayTrie<String>()
+        var trie4 = ArrayTrie<String>()
+        
+        trie1.set(["api", "v1"], value: "V1")
+        trie2.set(["web", "login"], value: "Login")
+        trie3.set(["mobile", "auth"], value: "Auth")
+        trie4.set(["admin", "panel"], value: "Panel")
+        
+        let result = ArrayTrie<String>.mergeAll(tries: [trie1, trie2, trie3, trie4]) { a, b in a }
+        
+        #expect(result.get(["api", "v1"]) == "V1")
+        #expect(result.get(["web", "login"]) == "Login")
+        #expect(result.get(["mobile", "auth"]) == "Auth")
+        #expect(result.get(["admin", "panel"]) == "Panel")
+    }
+    
+    @Test func testMergeAllOverlappingPaths() {
+        var trie1 = ArrayTrie<String>()
+        var trie2 = ArrayTrie<String>()
+        var trie3 = ArrayTrie<String>()
+        
+        trie1.set(["config", "database"], value: "mysql")
+        trie1.set(["config", "port"], value: "3306")
+        
+        trie2.set(["config", "database"], value: "postgres")
+        trie2.set(["config", "host"], value: "localhost")
+        
+        trie3.set(["config", "database"], value: "redis")
+        trie3.set(["config", "timeout"], value: "30")
+        
+        // Test "first wins" merge rule
+        let result1 = ArrayTrie<String>.mergeAll(tries: [trie1, trie2, trie3]) { a, b in a }
+        #expect(result1.get(["config", "database"]) == "mysql")  // first wins
+        #expect(result1.get(["config", "port"]) == "3306")
+        #expect(result1.get(["config", "host"]) == "localhost")
+        #expect(result1.get(["config", "timeout"]) == "30")
+        
+        // Test "last wins" merge rule
+        let result2 = ArrayTrie<String>.mergeAll(tries: [trie1, trie2, trie3]) { a, b in b }
+        #expect(result2.get(["config", "database"]) == "redis")  // last wins
+        
+        // Test concatenation merge rule
+        let result3 = ArrayTrie<String>.mergeAll(tries: [trie1, trie2, trie3]) { a, b in "\(a)|\(b)" }
+        #expect(result3.get(["config", "database"]) == "mysql|postgres|redis")
+    }
+    
+    @Test func testMergeAllComplexNested() {
+        var trie1 = ArrayTrie<String>()
+        var trie2 = ArrayTrie<String>()
+        var trie3 = ArrayTrie<String>()
+        
+        // Create complex nested structures with different depths
+        trie1.set(["api", "v1", "users", "create"], value: "POST")
+        trie1.set(["api", "v1", "users", "read"], value: "GET")
+        trie1.set(["api", "v1", "posts"], value: "POSTS")
+        
+        trie2.set(["api", "v1", "users", "update"], value: "PUT")
+        trie2.set(["api", "v2", "users"], value: "V2_USERS")
+        trie2.set(["web", "dashboard"], value: "DASH")
+        
+        trie3.set(["api", "v1", "users", "delete"], value: "DELETE")
+        trie3.set(["api", "v1", "users", "create"], value: "CREATE_V3")  // conflict
+        trie3.set(["mobile", "auth"], value: "MOBILE_AUTH")
+        
+        let result = ArrayTrie<String>.mergeAll(tries: [trie1, trie2, trie3]) { a, b in "\(a)+\(b)" }
+        
+        // Check merged values
+        #expect(result.get(["api", "v1", "users", "create"]) == "POST+CREATE_V3")
+        #expect(result.get(["api", "v1", "users", "read"]) == "GET")
+        #expect(result.get(["api", "v1", "users", "update"]) == "PUT")
+        #expect(result.get(["api", "v1", "users", "delete"]) == "DELETE")
+        #expect(result.get(["api", "v1", "posts"]) == "POSTS")
+        #expect(result.get(["api", "v2", "users"]) == "V2_USERS")
+        #expect(result.get(["web", "dashboard"]) == "DASH")
+        #expect(result.get(["mobile", "auth"]) == "MOBILE_AUTH")
+    }
+    
+    @Test func testMergeAllWithIntegerValues() {
+        var trie1 = ArrayTrie<Int>()
+        var trie2 = ArrayTrie<Int>()
+        var trie3 = ArrayTrie<Int>()
+        
+        trie1.set(["counters", "page_views"], value: 100)
+        trie1.set(["counters", "users"], value: 50)
+        
+        trie2.set(["counters", "page_views"], value: 200)
+        trie2.set(["counters", "orders"], value: 25)
+        
+        trie3.set(["counters", "page_views"], value: 150)
+        trie3.set(["counters", "errors"], value: 5)
+        
+        // Test sum merge rule
+        let result = ArrayTrie<Int>.mergeAll(tries: [trie1, trie2, trie3]) { a, b in a + b }
+        
+        #expect(result.get(["counters", "page_views"]) == 450)  // 100 + 200 + 150
+        #expect(result.get(["counters", "users"]) == 50)
+        #expect(result.get(["counters", "orders"]) == 25)
+        #expect(result.get(["counters", "errors"]) == 5)
+    }
+    
+    @Test func testMergeAllOrderMatters() {
+        var trie1 = ArrayTrie<String>()
+        var trie2 = ArrayTrie<String>()
+        var trie3 = ArrayTrie<String>()
+        
+        trie1.set(["value"], value: "A")
+        trie2.set(["value"], value: "B")
+        trie3.set(["value"], value: "C")
+        
+        // Test different orders produce different results with first-wins
+        let result1 = ArrayTrie<String>.mergeAll(tries: [trie1, trie2, trie3]) { a, b in a }
+        let result2 = ArrayTrie<String>.mergeAll(tries: [trie3, trie2, trie1]) { a, b in a }
+        
+        #expect(result1.get(["value"]) == "A")  // first in array wins
+        #expect(result2.get(["value"]) == "C")  // first in array wins
+        
+        // Test different orders with concatenation merge rule
+        let result3 = ArrayTrie<String>.mergeAll(tries: [trie1, trie2, trie3]) { a, b in "\(a)-\(b)" }
+        let result4 = ArrayTrie<String>.mergeAll(tries: [trie3, trie2, trie1]) { a, b in "\(a)-\(b)" }
+        
+        #expect(result3.get(["value"]) == "A-B-C")
+        #expect(result4.get(["value"]) == "C-B-A")
+    }
+    
+    @Test func testMergeAllPrefixRelationships() {
+        var trie1 = ArrayTrie<String>()
+        var trie2 = ArrayTrie<String>()
+        var trie3 = ArrayTrie<String>()
+        
+        // Create prefix relationships across multiple tries
+        trie1.set(["user"], value: "USER")
+        trie2.set(["user", "profile"], value: "PROFILE")
+        trie3.set(["user", "profile", "settings"], value: "SETTINGS")
+        
+        let result = ArrayTrie<String>.mergeAll(tries: [trie1, trie2, trie3]) { a, b in a }
+        
+        #expect(result.get(["user"]) == "USER")
+        #expect(result.get(["user", "profile"]) == "PROFILE")
+        #expect(result.get(["user", "profile", "settings"]) == "SETTINGS")
+    }
+    
+    @Test func testMergeAllImmutability() {
+        var trie1 = ArrayTrie<String>()
+        var trie2 = ArrayTrie<String>()
+        
+        trie1.set(["original"], value: "Value1")
+        trie2.set(["original"], value: "Value2")
+        
+        let originalTries = [trie1, trie2]
+        let result = ArrayTrie<String>.mergeAll(tries: originalTries) { a, b in "Merged" }
+        
+        // Verify original tries are unchanged
+        #expect(trie1.get(["original"]) == "Value1")
+        #expect(trie2.get(["original"]) == "Value2")
+        
+        // Verify merged result
+        #expect(result.get(["original"]) == "Merged")
+        
+        // Modify original tries after merge
+        trie1.set(["new"], value: "New1")
+        trie2.set(["new"], value: "New2")
+        
+        // Merged result should be unaffected
+        #expect(result.get(["new"]) == nil)
+        #expect(result.get(["original"]) == "Merged")
+    }
+    
+    @Test func testMergeAllPerformance() {
+        var tries: [ArrayTrie<Int>] = []
+        
+        // Create multiple tries with overlapping and disjoint data
+        for trieIndex in 0..<10 {
+            var trie = ArrayTrie<Int>()
+            
+            // Each trie has some unique data
+            for i in 0..<20 {
+                trie.set(["trie\(trieIndex)", "item\(i)"], value: trieIndex * 100 + i)
+            }
+            
+            // Each trie also has some overlapping data
+            for i in 0..<5 {
+                trie.set(["shared", "item\(i)"], value: trieIndex * 10 + i)
+            }
+            
+            tries.append(trie)
+        }
+        
+        let result = ArrayTrie<Int>.mergeAll(tries: tries) { a, b in a + b }
+        
+        // Verify unique data is preserved
+        for trieIndex in 0..<10 {
+            for i in 0..<20 {
+                let expected = trieIndex * 100 + i
+                #expect(result.get(["trie\(trieIndex)", "item\(i)"]) == expected)
+            }
+        }
+        
+        // Verify shared data is correctly merged (sum of all contributions)
+        for i in 0..<5 {
+            var expectedSum = 0
+            for trieIndex in 0..<10 {
+                expectedSum += trieIndex * 10 + i
+            }
+            #expect(result.get(["shared", "item\(i)"]) == expectedSum)
+        }
+    }
+    
+    @Test func testMergeAllMixedEmptyTries() {
+        var trie1 = ArrayTrie<String>()
+        let trie2 = ArrayTrie<String>()  // empty
+        var trie3 = ArrayTrie<String>()
+        let trie4 = ArrayTrie<String>()  // empty
+        
+        trie1.set(["data"], value: "Data1")
+        trie3.set(["data"], value: "Data3")
+        
+        let result = ArrayTrie<String>.mergeAll(tries: [trie1, trie2, trie3, trie4]) { a, b in "\(a)|\(b)" }
+        
+        #expect(result.get(["data"]) == "Data1|Data3")
+    }
 }

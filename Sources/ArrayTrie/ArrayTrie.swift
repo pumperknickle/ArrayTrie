@@ -165,6 +165,12 @@ public struct ArrayTrie<Value> {
         }
         return ArrayTrie(children: mergedChildren)
     }
+    
+    public static func mergeAll(tries: [Self], mergeRule: (Value, Value) -> Value) -> ArrayTrie<Value> {
+        return tries.reduce(Self()) { partialResult, next in
+            return partialResult.merging(with: next, mergeRule: mergeRule)
+        }
+    }
 }
 
 /**
