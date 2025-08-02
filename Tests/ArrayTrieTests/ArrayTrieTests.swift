@@ -59,9 +59,72 @@ import TrieDictionary
     @Test func testEmptyPath() {
         var trie = ArrayTrie<String>()
         
-        // Empty path should do nothing
+        // Empty path should set the root value
         trie.set([], value: "Root")
+        #expect(trie.get([]) == "Root")
+    }
+    
+    @Test func testRootValueBasicOperations() {
+        var trie = ArrayTrie<String>()
+        
+        // Initially empty
         #expect(trie.get([]) == nil)
+        #expect(trie.isEmpty())
+        
+        // Set root value
+        trie.set([], value: "Root Value")
+        #expect(trie.get([]) == "Root Value")
+        #expect(!trie.isEmpty()) // Should not be empty when root value exists
+        
+        // Override root value
+        trie.set([], value: "New Root Value")
+        #expect(trie.get([]) == "New Root Value")
+        
+        // Add regular path
+        trie.set(["users"], value: "Users")
+        #expect(trie.get([]) == "New Root Value")
+        #expect(trie.get(["users"]) == "Users")
+        
+        // Delete root value
+        let newTrie = trie.deleting(path: [])
+        #expect(newTrie.get([]) == nil)
+        #expect(newTrie.get(["users"]) == "Users")
+    }
+    
+    @Test func testRootValueWithMerging() {
+        var trie1 = ArrayTrie<String>()
+        var trie2 = ArrayTrie<String>()
+        
+        // Set root values in both tries
+        trie1.set([], value: "Root1")
+        trie2.set([], value: "Root2")
+        
+        // Set some regular paths
+        trie1.set(["path1"], value: "Value1")
+        trie2.set(["path2"], value: "Value2")
+        
+        // Merge with first wins
+        let merged1 = trie1.merging(with: trie2) { a, b in a }
+        #expect(merged1.get([]) == "Root1")
+        #expect(merged1.get(["path1"]) == "Value1")
+        #expect(merged1.get(["path2"]) == "Value2")
+        
+        // Merge with concatenation
+        let merged2 = trie1.merging(with: trie2) { a, b in "\(a)+\(b)" }
+        #expect(merged2.get([]) == "Root1+Root2")
+    }
+    
+    @Test func testRootValueMergeWithEmpty() {
+        var trie1 = ArrayTrie<String>()
+        let trie2 = ArrayTrie<String>()
+        
+        // Only one trie has root value
+        trie1.set([], value: "OnlyRoot")
+        trie1.set(["path"], value: "RegularValue")
+        
+        let merged = trie1.merging(with: trie2) { a, b in a }
+        #expect(merged.get([]) == "OnlyRoot")
+        #expect(merged.get(["path"]) == "RegularValue")
     }
     
     // MARK: - Deletion Tests

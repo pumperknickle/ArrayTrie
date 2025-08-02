@@ -42,6 +42,9 @@ public struct ArrayTrie<Value> {
     typealias Node = ArrayTrieNode<Value>
     typealias ChildMap = TrieDictionary<ArrayTrieNode<Value>>
     
+    /// Optional value stored at the root (empty path)
+    var rootValue: Value?
+    
     /// Dictionary of child nodes, keyed by string
     var children: ChildMap
     
@@ -50,6 +53,17 @@ public struct ArrayTrie<Value> {
      * @param children The initial children to use for this trie
      */
     init(children: ChildMap) {
+        self.rootValue = nil
+        self.children = children
+    }
+    
+    /**
+     * Creates a new ArrayTrie with the specified root value and children map.
+     * @param rootValue The optional value to store at the root
+     * @param children The initial children to use for this trie
+     */
+    init(rootValue: Value?, children: ChildMap) {
+        self.rootValue = rootValue
         self.children = children
     }
     
@@ -57,15 +71,16 @@ public struct ArrayTrie<Value> {
      * Creates an empty ArrayTrie with no children.
      */
     public init() {
-        self = Self(children: [:])
+        self.rootValue = nil
+        self.children = [:]
     }
     
     /**
-     * Checks if the trie is empty (has no children).
-     * @return True if the trie has no children, false otherwise
+     * Checks if the trie is empty (has no children and no root value).
+     * @return True if the trie has no children and no root value, false otherwise
      */
     public func isEmpty() -> Bool {
-        return children.count == 0
+        return children.count == 0 && rootValue == nil
     }
     
     /**
@@ -94,7 +109,16 @@ public struct ArrayTrie<Value> {
     func with(child: String, node: Node?) -> Self {
         var newChildren = children
         newChildren[child] = node
-        return Self(children: newChildren)
+        return Self(rootValue: rootValue, children: newChildren)
+    }
+    
+    /**
+     * Creates a new trie with a modified root value.
+     * @param rootValue The new root value, or nil to remove the root value
+     * @return A new trie with the specified root value
+     */
+    func with(rootValue: Value?) -> Self {
+        return Self(rootValue: rootValue, children: children)
     }
     
     /**
@@ -105,7 +129,7 @@ public struct ArrayTrie<Value> {
     public func traverse(_ path: [String]) -> Self? {
         guard let firstKey = path.first else { return self }
         guard let childNode = children[firstKey], let subtrie = childNode.traverse(ArraySlice(path)) else { return nil }
-        return Self(children: subtrie)
+        return Self(rootValue: nil, children: subtrie)
     }
     
     /**
@@ -114,7 +138,7 @@ public struct ArrayTrie<Value> {
      * @return The value at the specified path, or nil if not found
      */
     public func get(_ path: [String]) -> Value? {
-        guard let firstKey = path.first else { return nil }
+        guard let firstKey = path.first else { return rootValue }
         guard let root = children[firstKey] else { return nil }
         return root.get(path: path)
     }
@@ -125,7 +149,10 @@ public struct ArrayTrie<Value> {
      * @param value The value to store at the specified path
      */
     public mutating func set(_ path: [String], value: Value) {
-        guard let firstKey = path.first else { return }
+        guard let firstKey = path.first else { 
+            rootValue = value
+            return 
+        }
         if children[firstKey] == nil {
             updateChild(firstKey, Node(prefix: path, value: value, children: [:]))
             return
@@ -134,7 +161,7 @@ public struct ArrayTrie<Value> {
     }
     
     public func getValuesAlongPath(_ path: String) -> [(Self, Value)] {
-        return children.getValuesAlongPath(path).filter { $0.prefix.count == 1 }.filter { $0.value != nil }.map { (Self(children: $0.children), $0.value!) }
+        return children.getValuesAlongPath(path).filter { $0.prefix.count == 1 }.filter { $0.value != nil }.map { (Self(rootValue: nil, children: $0.children), $0.value!) }
     }
     
     /**
@@ -143,14 +170,14 @@ public struct ArrayTrie<Value> {
      * @return A new trie with the specified path removed
      */
     public func deleting(path: [String]) -> Self {
-        guard let firstKey = path.first else { return self }
+        guard let firstKey = path.first else { return with(rootValue: nil) }
         guard let childNode = children[firstKey] else { return self }
         return with(child: firstKey, node: childNode.deleting(ArraySlice(path)))
     }
     
     public func traverse(path: String) -> Self? {
         let traversed = children.traverse(path)
-        return traversed.isEmpty ? nil : Self(children: traversed)
+        return traversed.isEmpty ? nil : Self(rootValue: nil, children: traversed)
     }
     
     /**
@@ -163,7 +190,15 @@ public struct ArrayTrie<Value> {
         let mergedChildren = children.merge(other: other.children) { selfChild, otherChild in
             selfChild.merging(with: otherChild, mergeRule: mergeRule)
         }
-        return ArrayTrie(children: mergedChildren)
+        
+        let mergedRootValue: Value?
+        if let selfRootValue = self.rootValue, let otherRootValue = other.rootValue {
+            mergedRootValue = mergeRule(selfRootValue, otherRootValue)
+        } else {
+            mergedRootValue = self.rootValue ?? other.rootValue
+        }
+        
+        return ArrayTrie(rootValue: mergedRootValue, children: mergedChildren)
     }
     
     public static func mergeAll(tries: [Self], mergeRule: (Value, Value) -> Value) -> ArrayTrie<Value> {
