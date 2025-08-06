@@ -128,8 +128,8 @@ public struct ArrayTrie<Value> {
      */
     public func traverse(_ path: [String]) -> Self? {
         guard let firstKey = path.first else { return self }
-        guard let childNode = children[firstKey], let subtrie = childNode.traverse(ArraySlice(path)) else { return nil }
-        return Self(rootValue: nil, children: subtrie)
+        guard let childNode = children[firstKey], let (subtrie, valueAtPath) = childNode.traverse(ArraySlice(path)) else { return nil }
+        return Self(rootValue: valueAtPath, children: subtrie)
     }
     
     /**
@@ -452,16 +452,16 @@ final class ArrayTrieNode<Value> {
     /**
      * Traverses the node following the specified path.
      * @param path An array slice of string segments forming the path to follow
-     * @return A map of children at the specified path, or nil if not found
+     * @return A tuple containing the children map and value at the specified path, or nil if not found
      */
-    func traverse(_ path: ArraySlice<String>) -> ChildMap? {
+    func traverse(_ path: ArraySlice<String>) -> (children: ChildMap, value: Value?)? {
         // If the path is a prefix of this node's prefix
         if prefix.starts(with: path) {
             let suffix = prefix.dropFirst(path.count)
-            guard let firstSuffix = suffix.first else { return children }
+            guard let firstSuffix = suffix.first else { return (children, value) }
             var newChild: ChildMap = [:]
             newChild[firstSuffix] = Self(prefix: Array(suffix), value: value, children: children)
-            return newChild
+            return (newChild, nil)
         }
         
         // If this node's prefix is not a prefix of the path
@@ -469,7 +469,7 @@ final class ArrayTrieNode<Value> {
         
         // Get the remaining suffix after this node's prefix
         let suffix = path.dropFirst(prefix.count)
-        guard let firstSuffix = suffix.first else { return children }
+        guard let firstSuffix = suffix.first else { return (children, value) }
         
         // Look for a child node matching the first suffix element
         guard let child = children[firstSuffix] else { return nil }

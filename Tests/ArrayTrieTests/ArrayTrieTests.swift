@@ -64,6 +64,20 @@ import TrieDictionary
         #expect(trie.get([]) == "Root")
     }
     
+    @Test func testEmptyStringInPath() {
+        var trie = ArrayTrie<String>()
+        
+        // Empty string path should set the root value
+        trie.set([""], value: "Root")
+        #expect(trie.get([""]) == "Root")
+        
+        
+        trie.set(["hello", ""], value: "Root")
+        #expect(trie.get(["hello", ""]) == "Root")
+        
+        #expect(trie.traverse(["hello"])?.get([""]) == "Root")
+    }
+    
     @Test func testRootValueBasicOperations() {
         var trie = ArrayTrie<String>()
         
@@ -215,11 +229,15 @@ import TrieDictionary
         // Set up the trie
         trie.set(["users", "john"], value: "John Doe")
         
-        // Traverse to a non-existent path
+        // Traverse to the path that has a value
         let subtrie = trie.traverse(["users", "john"])
         
-        // Verify the subtrie is nil
-        #expect(subtrie!.isEmpty())
+        // Verify the subtrie has the value as rootValue and no children
+        #expect(subtrie != nil)
+        if let subtrie = subtrie {
+            #expect(subtrie.get([]) == "John Doe")  // rootValue should be the traversed value
+            #expect(subtrie.children.isEmpty)       // no children beyond this path
+        }
     }
     
     @Test func testTraversalEmptyPath() {
