@@ -1096,4 +1096,214 @@ import TrieDictionary
         
         #expect(result.get(["data"]) == "Data1|Data3")
     }
+    
+    // MARK: - GetValuesOneLevelDeep Tests
+    
+    @Test func testGetValuesOneLevelDeepEmpty() {
+        let trie = ArrayTrie<String>()
+        
+        let values = trie.getValuesOneLevelDeep()
+        
+        #expect(values.isEmpty)
+    }
+    
+    @Test func testGetValuesOneLevelDeepSingleLevel() {
+        var trie = ArrayTrie<String>()
+        
+        trie.set(["user"], value: "User Data")
+        trie.set(["admin"], value: "Admin Data")
+        trie.set(["guest"], value: "Guest Data")
+        
+        let values = trie.getValuesOneLevelDeep()
+        
+        #expect(values.count == 3)
+        #expect(values.contains("User Data"))
+        #expect(values.contains("Admin Data"))
+        #expect(values.contains("Guest Data"))
+    }
+    
+    @Test func testGetValuesOneLevelDeepWithDeepPaths() {
+        var trie = ArrayTrie<String>()
+        
+        // Single level paths
+        trie.set(["user"], value: "User Data")
+        trie.set(["admin"], value: "Admin Data")
+        
+        // Multi-level paths should be excluded
+        trie.set(["user", "profile"], value: "Profile Data")
+        trie.set(["user", "settings"], value: "Settings Data")
+        trie.set(["admin", "permissions"], value: "Permissions Data")
+        
+        let values = trie.getValuesOneLevelDeep()
+        
+        // Should only return values from single-level paths
+        #expect(values.count == 2)
+        #expect(values.contains("User Data"))
+        #expect(values.contains("Admin Data"))
+        #expect(!values.contains("Profile Data"))
+        #expect(!values.contains("Settings Data"))
+        #expect(!values.contains("Permissions Data"))
+    }
+    
+    @Test func testGetValuesOneLevelDeepWithNilValues() {
+        var trie = ArrayTrie<String>()
+        
+        // Set some values
+        trie.set(["user"], value: "User Data")
+        trie.set(["admin"], value: "Admin Data")
+        
+        // Create paths without values (intermediate nodes)
+        trie.set(["user", "profile"], value: "Profile Data")
+        trie.set(["guest", "info"], value: "Guest Info")
+        
+        let values = trie.getValuesOneLevelDeep()
+        
+        // Should only include nodes with values at single level
+        #expect(values.count == 2)
+        #expect(values.contains("User Data"))
+        #expect(values.contains("Admin Data"))
+        #expect(!values.contains("Profile Data"))
+        #expect(!values.contains("Guest Info"))
+    }
+    
+    @Test func testGetValuesOneLevelDeepMixedTypes() {
+        var intTrie = ArrayTrie<Int>()
+        var boolTrie = ArrayTrie<Bool>()
+        
+        intTrie.set(["count"], value: 42)
+        intTrie.set(["total"], value: 100)
+        intTrie.set(["deep", "value"], value: 999)
+        
+        boolTrie.set(["enabled"], value: true)
+        boolTrie.set(["disabled"], value: false)
+        boolTrie.set(["nested", "flag"], value: true)
+        
+        let intValues = intTrie.getValuesOneLevelDeep()
+        let boolValues = boolTrie.getValuesOneLevelDeep()
+        
+        #expect(intValues.count == 2)
+        #expect(intValues.contains(42))
+        #expect(intValues.contains(100))
+        #expect(!intValues.contains(999))
+        
+        #expect(boolValues.count == 2)
+        #expect(boolValues.contains(true))
+        #expect(boolValues.contains(false))
+    }
+    
+    @Test func testGetValuesOneLevelDeepAfterDeletion() {
+        var trie = ArrayTrie<String>()
+        
+        trie.set(["user"], value: "User Data")
+        trie.set(["admin"], value: "Admin Data")
+        trie.set(["guest"], value: "Guest Data")
+        
+        var values = trie.getValuesOneLevelDeep()
+        #expect(values.count == 3)
+        
+        // Delete one path
+        trie = trie.deleting(path: ["admin"])
+        values = trie.getValuesOneLevelDeep()
+        
+        #expect(values.count == 2)
+        #expect(values.contains("User Data"))
+        #expect(values.contains("Guest Data"))
+        #expect(!values.contains("Admin Data"))
+    }
+    
+    @Test func testGetValuesOneLevelDeepWithRootValue() {
+        var trie = ArrayTrie<String>()
+        
+        // Set root value
+        trie.set([], value: "Root Value")
+        
+        // Set single level values
+        trie.set(["user"], value: "User Data")
+        trie.set(["admin"], value: "Admin Data")
+        
+        let values = trie.getValuesOneLevelDeep()
+        
+        // Root value should not be included in one-level-deep results
+        #expect(values.count == 2)
+        #expect(values.contains("User Data"))
+        #expect(values.contains("Admin Data"))
+        #expect(!values.contains("Root Value"))
+    }
+    
+    @Test func testGetValuesOneLevelDeepEmptyStrings() {
+        var trie = ArrayTrie<String>()
+        
+        trie.set([""], value: "Empty String Value")
+        trie.set(["user"], value: "User Data")
+        trie.set(["", "nested"], value: "Nested Under Empty")
+        
+        let values = trie.getValuesOneLevelDeep()
+        
+        #expect(values.count == 2)
+        #expect(values.contains("Empty String Value"))
+        #expect(values.contains("User Data"))
+        #expect(!values.contains("Nested Under Empty"))
+    }
+    
+    @Test func testGetValuesOneLevelDeepAfterMerging() {
+        var trie1 = ArrayTrie<String>()
+        var trie2 = ArrayTrie<String>()
+        
+        trie1.set(["user"], value: "User1")
+        trie1.set(["admin"], value: "Admin1")
+        
+        trie2.set(["user"], value: "User2")
+        trie2.set(["guest"], value: "Guest2")
+        
+        let merged = trie1.merging(with: trie2) { a, b in "\(a)+\(b)" }
+        let values = merged.getValuesOneLevelDeep()
+        
+        #expect(values.count == 3)
+        #expect(values.contains("User1+User2"))
+        #expect(values.contains("Admin1"))
+        #expect(values.contains("Guest2"))
+    }
+    
+    @Test func testGetValuesOneLevelDeepPerformance() {
+        var trie = ArrayTrie<Int>()
+        
+        // Add many single-level values
+        for i in 0..<1000 {
+            trie.set(["item\(i)"], value: i)
+        }
+        
+        // Add some multi-level values
+        for i in 0..<100 {
+            trie.set(["deep", "item\(i)"], value: i + 10000)
+        }
+        
+        let values = trie.getValuesOneLevelDeep()
+        
+        // Should only contain single-level values
+        #expect(values.count == 1000)
+        for i in 0..<1000 {
+            #expect(values.contains(i))
+        }
+        
+        // Should not contain multi-level values
+        for i in 0..<100 {
+            #expect(!values.contains(i + 10000))
+        }
+    }
+    
+    @Test func testGetValuesOneLevelDeepOrder() {
+        var trie = ArrayTrie<String>()
+        
+        trie.set(["zebra"], value: "Z")
+        trie.set(["apple"], value: "A")
+        trie.set(["banana"], value: "B")
+        
+        let values = trie.getValuesOneLevelDeep()
+        
+        // Values should be present regardless of insertion order
+        #expect(values.count == 3)
+        #expect(values.contains("Z"))
+        #expect(values.contains("A"))
+        #expect(values.contains("B"))
+    }
 }

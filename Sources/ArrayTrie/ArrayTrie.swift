@@ -83,6 +83,10 @@ public struct ArrayTrie<Value> {
         return children.count == 0 && rootValue == nil
     }
     
+    public func getValuesOneLevelDeep() -> [Value] {
+        children.values().filter { $0.prefix.count == 1 && $0.value != nil }.map { $0.value! }
+    }
+    
     /**
      * Updates all children of this trie.
      * @param children The new children map
