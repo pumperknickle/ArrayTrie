@@ -168,6 +168,10 @@ public struct ArrayTrie<Value> {
         return children.getValuesAlongPath(path).filter { $0.prefix.count == 1 }.filter { $0.value != nil }.map { (Self(rootValue: nil, children: $0.children), $0.value!) }
     }
     
+    public func getKeyValuesAlongPath(_ path: String) -> [(String, Value)] {
+        return children.getValuesAlongPath(path).filter { $0.prefix.count == 1 }.filter { $0.value != nil }.map { ($0.prefix.first!, $0.value!) }
+    }
+    
     /**
      * Creates a new trie with the specified path deleted.
      * @param path An array of string segments forming the path to delete

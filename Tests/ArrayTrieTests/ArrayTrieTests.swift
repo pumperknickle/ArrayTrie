@@ -1306,4 +1306,342 @@ import TrieDictionary
         #expect(values.contains("A"))
         #expect(values.contains("B"))
     }
+    
+    // MARK: - GetKeyValuesAlongPath Tests
+    
+    @Test func testGetKeyValuesAlongPathBasic() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with values at different path levels
+        trie.set(["u"], value: "U")
+        trie.set(["us"], value: "US")
+        trie.set(["use"], value: "USE")
+        trie.set(["user"], value: "USER")
+        trie.set(["users"], value: "USERS")
+        
+        // Get key-value pairs along the path "user"
+        let results = trie.getKeyValuesAlongPath("user")
+        
+        // Convert results to a dictionary for easier testing
+        let resultDict = Dictionary(uniqueKeysWithValues: results)
+        
+        // getKeyValuesAlongPath returns key-value pairs from keys that are prefixes of the path
+        #expect(resultDict["u"] == "U")
+        #expect(resultDict["us"] == "US")
+        #expect(resultDict["use"] == "USE")
+        #expect(resultDict["user"] == "USER")
+        // "users" should not be included as it's longer than the search path
+        #expect(resultDict["users"] == nil)
+        #expect(results.count == 4)
+    }
+    
+    @Test func testGetKeyValuesAlongPathEmpty() {
+        let trie = ArrayTrie<String>()
+        
+        // Get key-values from empty trie
+        let results = trie.getKeyValuesAlongPath("anything")
+        
+        // Should return empty array
+        #expect(results.isEmpty)
+    }
+    
+    @Test func testGetKeyValuesAlongPathEmptyString() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie
+        trie.set(["a"], value: "A")
+        trie.set(["b"], value: "B")
+        
+        // Get key-values along empty path
+        let results = trie.getKeyValuesAlongPath("")
+        
+        // Empty string returns empty array since no keys are prefixes of empty string
+        #expect(results.isEmpty)
+    }
+    
+    @Test func testGetKeyValuesAlongPathNoMatches() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with values that don't match the search path
+        trie.set(["apple"], value: "APPLE")
+        trie.set(["banana"], value: "BANANA")
+        
+        // Get key-values along a path that doesn't exist
+        let results = trie.getKeyValuesAlongPath("orange")
+        
+        // Should return empty array
+        #expect(results.isEmpty)
+    }
+    
+    @Test func testGetKeyValuesAlongPathPartialMatches() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with some matching and some non-matching keys
+        trie.set(["test"], value: "TEST")
+        trie.set(["testing"], value: "TESTING")
+        trie.set(["best"], value: "BEST")
+        trie.set(["rest"], value: "REST")
+        trie.set(["te"], value: "TE")
+        trie.set(["t"], value: "T")
+        
+        // Get key-values along path "test"
+        let results = trie.getKeyValuesAlongPath("test")
+        let resultDict = Dictionary(uniqueKeysWithValues: results)
+        
+        // Should return key-value pairs from keys that are prefixes of "test"
+        #expect(resultDict["test"] == "TEST")
+        #expect(resultDict["te"] == "TE")
+        #expect(resultDict["t"] == "T")
+        #expect(resultDict["testing"] == nil) // longer than search path
+        #expect(resultDict["best"] == nil)
+        #expect(resultDict["rest"] == nil)
+        #expect(results.count == 3)
+    }
+    
+    @Test func testGetKeyValuesAlongPathMultipleTypes() {
+        var intTrie = ArrayTrie<Int>()
+        var boolTrie = ArrayTrie<Bool>()
+        
+        // Set up tries with different value types
+        intTrie.set(["n"], value: 1)
+        intTrie.set(["nu"], value: 12)
+        intTrie.set(["num"], value: 123)
+        
+        boolTrie.set(["t"], value: true)
+        boolTrie.set(["tr"], value: false)
+        boolTrie.set(["tru"], value: true)
+        
+        // Get key-values along paths
+        let intResults = intTrie.getKeyValuesAlongPath("num")
+        let boolResults = boolTrie.getKeyValuesAlongPath("tr")
+        
+        let intDict = Dictionary(uniqueKeysWithValues: intResults)
+        let boolDict = Dictionary(uniqueKeysWithValues: boolResults)
+        
+        // Should return key-value pairs from keys that are prefixes of the search path
+        #expect(intDict["n"] == 1)  // "n" is prefix of "num"
+        #expect(intDict["nu"] == 12) // "nu" is prefix of "num"
+        #expect(intDict["num"] == 123) // "num" matches exactly
+        #expect(intResults.count == 3)
+        
+        #expect(boolDict["t"] == true)  // "t" is prefix of "tr"
+        #expect(boolDict["tr"] == false) // "tr" matches exactly
+        #expect(boolResults.count == 2)
+    }
+    
+    @Test func testGetKeyValuesAlongPathWithSpecialCharacters() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with keys containing special characters
+        trie.set(["user@domain.com"], value: "Email User")
+        trie.set(["user-name"], value: "Hyphenated User")
+        trie.set(["user_id"], value: "Underscore User")
+        trie.set(["user"], value: "Simple User")
+        
+        // Get key-values using partial string with special characters
+        let results = trie.getKeyValuesAlongPath("user")
+        let resultDict = Dictionary(uniqueKeysWithValues: results)
+        
+        // Should return the exact match
+        #expect(resultDict["user"] == "Simple User")
+        #expect(results.count == 1)
+        
+        // Test with longer search path
+        let emailResults = trie.getKeyValuesAlongPath("user@domain.com")
+        let emailDict = Dictionary(uniqueKeysWithValues: emailResults)
+        
+        #expect(emailDict["user"] == "Simple User")
+        #expect(emailDict["user@domain.com"] == "Email User")
+        #expect(emailResults.count == 2)
+    }
+    
+    @Test func testGetKeyValuesAlongPathEmptyTrie() {
+        let trie = ArrayTrie<String>()
+        
+        // Get key-values from empty trie
+        let results = trie.getKeyValuesAlongPath("anything")
+        
+        // Should return empty array
+        #expect(results.isEmpty)
+    }
+    
+    @Test func testGetKeyValuesAlongPathSingleCharacter() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up trie with single character keys
+        trie.set(["a"], value: "Alpha")
+        trie.set(["b"], value: "Beta")
+        trie.set(["ab"], value: "AlphaBeta")
+        trie.set(["abc"], value: "AlphaBetaCharlie")
+        
+        // Search for single character
+        let singleResults = trie.getKeyValuesAlongPath("a")
+        let singleDict = Dictionary(uniqueKeysWithValues: singleResults)
+        
+        #expect(singleDict["a"] == "Alpha")
+        #expect(singleResults.count == 1)
+        
+        // Search for two characters
+        let doubleResults = trie.getKeyValuesAlongPath("ab")
+        let doubleDict = Dictionary(uniqueKeysWithValues: doubleResults)
+        
+        #expect(doubleDict["a"] == "Alpha")
+        #expect(doubleDict["ab"] == "AlphaBeta")
+        #expect(doubleResults.count == 2)
+    }
+    
+    @Test func testGetKeyValuesAlongPathDuplicateHandling() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up trie with values
+        trie.set(["test"], value: "TEST1")
+        trie.set(["test"], value: "TEST2") // Overwrite
+        trie.set(["te"], value: "TE")
+        trie.set(["t"], value: "T")
+        
+        let results = trie.getKeyValuesAlongPath("test")
+        let resultDict = Dictionary(uniqueKeysWithValues: results)
+        
+        // Should have the overwritten value
+        #expect(resultDict["test"] == "TEST2")
+        #expect(resultDict["te"] == "TE")
+        #expect(resultDict["t"] == "T")
+        #expect(results.count == 3)
+    }
+    
+    @Test func testGetKeyValuesAlongPathAfterDeletion() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up trie
+        trie.set(["user"], value: "USER")
+        trie.set(["use"], value: "USE")
+        trie.set(["us"], value: "US")
+        trie.set(["u"], value: "U")
+        
+        var results = trie.getKeyValuesAlongPath("user")
+        #expect(results.count == 4)
+        
+        // Delete a path
+        trie = trie.deleting(path: ["use"])
+        results = trie.getKeyValuesAlongPath("user")
+        let resultDict = Dictionary(uniqueKeysWithValues: results)
+        
+        #expect(resultDict["user"] == "USER")
+        #expect(resultDict["us"] == "US")
+        #expect(resultDict["u"] == "U")
+        #expect(resultDict["use"] == nil)
+        #expect(results.count == 3)
+    }
+    
+    @Test func testGetKeyValuesAlongPathAfterMerging() {
+        var trie1 = ArrayTrie<String>()
+        var trie2 = ArrayTrie<String>()
+        
+        trie1.set(["user"], value: "USER1")
+        trie1.set(["use"], value: "USE1")
+        
+        trie2.set(["user"], value: "USER2")
+        trie2.set(["us"], value: "US2")
+        
+        let merged = trie1.merging(with: trie2) { a, b in "\(a)+\(b)" }
+        let results = merged.getKeyValuesAlongPath("user")
+        let resultDict = Dictionary(uniqueKeysWithValues: results)
+        
+        #expect(resultDict["user"] == "USER1+USER2")
+        #expect(resultDict["use"] == "USE1")
+        #expect(resultDict["us"] == "US2")
+        #expect(results.count == 3)
+    }
+    
+    @Test func testGetKeyValuesAlongPathLongPath() {
+        var trie = ArrayTrie<String>()
+        
+        // Create progressively longer keys
+        let longKey = "verylongkeyfortesting"
+        for i in 1...longKey.count {
+            let key = String(longKey.prefix(i))
+            trie.set([key], value: "VALUE_\(i)")
+        }
+        
+        let results = trie.getKeyValuesAlongPath(longKey)
+        #expect(results.count == longKey.count)
+        
+        // Verify all prefixes are included
+        let resultDict = Dictionary(uniqueKeysWithValues: results)
+        for i in 1...longKey.count {
+            let key = String(longKey.prefix(i))
+            #expect(resultDict[key] == "VALUE_\(i)")
+        }
+    }
+    
+    @Test func testGetKeyValuesAlongPathPerformance() {
+        var trie = ArrayTrie<Int>()
+        
+        // Add many keys with common prefixes
+        for i in 0..<1000 {
+            let key = "prefix\(String(format: "%03d", i))"
+            trie.set([key], value: i)
+        }
+        
+        // Test searching along a path that has many matching prefixes
+        let results = trie.getKeyValuesAlongPath("prefix999")
+        
+        // Should find all keys that are prefixes of "prefix999"
+        let resultDict = Dictionary(uniqueKeysWithValues: results)
+        #expect(resultDict["prefix999"] == 999)
+        
+        // Count expected prefixes
+        var expectedCount = 0
+        for i in 0..<1000 {
+            let key = "prefix\(String(format: "%03d", i))"
+            if "prefix999".hasPrefix(key) {
+                expectedCount += 1
+            }
+        }
+        
+        #expect(results.count == expectedCount)
+    }
+    
+    @Test func testGetKeyValuesAlongPathOrder() {
+        var trie = ArrayTrie<String>()
+        
+        // Insert keys in specific order
+        trie.set(["c"], value: "C")
+        trie.set(["ca"], value: "CA")
+        trie.set(["car"], value: "CAR")
+        trie.set(["care"], value: "CARE")
+        
+        let results = trie.getKeyValuesAlongPath("care")
+        
+        // All key-value pairs should be present regardless of insertion order
+        let resultDict = Dictionary(uniqueKeysWithValues: results)
+        #expect(resultDict["c"] == "C")
+        #expect(resultDict["ca"] == "CA")
+        #expect(resultDict["car"] == "CAR")
+        #expect(resultDict["care"] == "CARE")
+        #expect(results.count == 4)
+    }
+    
+    @Test func testGetKeyValuesAlongPathComparisonWithGetValuesAlongPath() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie
+        trie.set(["t"], value: "T")
+        trie.set(["te"], value: "TE")
+        trie.set(["test"], value: "TEST")
+        
+        let keyValueResults = trie.getKeyValuesAlongPath("test")
+        let valueResults = trie.getValuesAlongPath("test")
+        
+        // Both should return the same number of results
+        #expect(keyValueResults.count == valueResults.count)
+        
+        // Values should match between both methods
+        let keyValueDict = Dictionary(uniqueKeysWithValues: keyValueResults)
+        let values = valueResults.map { $0.1 }
+        
+        #expect(values.contains(keyValueDict["t"]!))
+        #expect(values.contains(keyValueDict["te"]!))
+        #expect(values.contains(keyValueDict["test"]!))
+    }
 }
