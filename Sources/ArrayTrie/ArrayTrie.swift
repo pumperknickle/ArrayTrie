@@ -84,7 +84,7 @@ public struct ArrayTrie<Value> {
     }
     
     public func getValuesOneLevelDeep() -> [Value] {
-        children.values().filter { $0.prefix.count == 1 && $0.value != nil }.map { $0.value! }
+        children.values().filter { $0.prefix.isEmpty && $0.value != nil }.map { $0.value! }
     }
     
     /**
@@ -132,7 +132,7 @@ public struct ArrayTrie<Value> {
      */
     public func traverse(_ path: [String]) -> Self? {
         guard let firstKey = path.first else { return self }
-        guard let childNode = children[firstKey], let (subtrie, valueAtPath) = childNode.traverse(ArraySlice(path)) else { return nil }
+        guard let childNode = children[firstKey], let (subtrie, valueAtPath) = childNode.traverse(ArraySlice(path).dropFirst()) else { return nil }
         return Self(rootValue: valueAtPath, children: subtrie)
     }
     
@@ -144,7 +144,7 @@ public struct ArrayTrie<Value> {
     public func get(_ path: [String]) -> Value? {
         guard let firstKey = path.first else { return rootValue }
         guard let root = children[firstKey] else { return nil }
-        return root.get(path: path)
+        return root.get(ArraySlice(path.dropFirst()))
     }
     
     /**
@@ -158,18 +158,23 @@ public struct ArrayTrie<Value> {
             return 
         }
         if children[firstKey] == nil {
-            updateChild(firstKey, Node(prefix: path, value: value, children: [:]))
+            updateChild(firstKey, Node(prefix: Array(path.dropFirst()), value: value, children: [:]))
             return
         }
-        children[firstKey]!.set(keys: ArraySlice(path), to: value)
+        children[firstKey]!.set(keys: ArraySlice(path).dropFirst(), to: value)
     }
     
     public func getValuesAlongPath(_ path: String) -> [(Self, Value)] {
-        return children.getValuesAlongPath(path).filter { $0.prefix.count == 1 }.filter { $0.value != nil }.map { (Self(rootValue: nil, children: $0.children), $0.value!) }
+        return children.getValuesAlongPath(path).filter { $0.prefix.isEmpty }.filter { $0.value != nil }.map { (Self(rootValue: nil, children: $0.children), $0.value!) }
     }
     
-    public func getKeyValuesAlongPath(_ path: String) -> [(String, Value)] {
-        return children.getValuesAlongPath(path).filter { $0.prefix.count == 1 }.filter { $0.value != nil }.map { ($0.prefix.first!, $0.value!) }
+    public func traverseChild(_ char: Character) -> Self? {
+        guard let newChildren = children.traverseChild(char) else { return nil }
+        return Self(rootValue: rootValue, children: newChildren)
+    }
+    
+    public func getAllChildCharacters() -> [Character] {
+        return children.getAllChildCharacters()
     }
     
     /**
@@ -180,12 +185,12 @@ public struct ArrayTrie<Value> {
     public func deleting(path: [String]) -> Self {
         guard let firstKey = path.first else { return with(rootValue: nil) }
         guard let childNode = children[firstKey] else { return self }
-        return with(child: firstKey, node: childNode.deleting(ArraySlice(path)))
+        return with(child: firstKey, node: childNode.deleting(ArraySlice(path).dropFirst()))
     }
     
     public func traverse(path: String) -> Self? {
         let traversed = children.traverse(path)
-        return traversed.isEmpty ? nil : Self(rootValue: nil, children: traversed)
+        return traversed.isEmpty ? nil : Self(rootValue: traversed[""]?.value, children: traversed)
     }
     
     /**
@@ -316,20 +321,11 @@ final class ArrayTrieNode<Value> {
     }
     
     /**
-     * Retrieves a value from the node at the specified path.
-     * @param path An array of string segments forming the path to the value
-     * @return The value at the specified path, or nil if not found
-     */
-    func get(path: [String]) -> Value? {
-        return getInternal(ArraySlice(path))
-    }
-    
-    /**
      * Internal implementation of get that uses ArraySlice for efficiency.
      * @param keys An array slice of string segments forming the path to the value
      * @return The value at the specified path, or nil if not found
      */
-    func getInternal(_ keys: ArraySlice<String>) -> Value? {
+    func get(_ keys: ArraySlice<String>) -> Value? {
         // If the keys don't start with this node's prefix, no match
         if !keys.starts(with: prefix) { return nil }
         
@@ -343,7 +339,7 @@ final class ArrayTrieNode<Value> {
         guard let childNode = getChild(firstValue) else { return nil }
         
         // Recursively search in the matching child node
-        return childNode.getInternal(suffix)
+        return childNode.get(suffix.dropFirst())
     }
     
     /**
@@ -365,12 +361,12 @@ final class ArrayTrieNode<Value> {
             
             // If there's no matching child, create a new one
             if children[firstSuffixValue] == nil {
-                updateChild(firstSuffixValue, Self(prefix: Array(suffix), value: value, children: [:]))
+                updateChild(firstSuffixValue, Self(prefix: Array(suffix.dropFirst()), value: value, children: [:]))
                 return
             }
             
             // Otherwise, recursively set in the matching child
-            children[firstSuffixValue]!.set(keys: suffix, to: value)
+            children[firstSuffixValue]!.set(keys: suffix.dropFirst(), to: value)
             return
         }
         
@@ -379,7 +375,7 @@ final class ArrayTrieNode<Value> {
             // Split this node into two parts
             let suffix = prefix.dropFirst(keys.count)
             var newChild: ChildMap = [:]
-            newChild[suffix.first!] = with(prefix: Array(suffix), children: children)
+            newChild[suffix.first!] = with(prefix: Array(suffix.dropFirst()), children: children)
             updatePrefix(Array(keys))
             updateValue(value)
             updateChildren(newChild)
@@ -393,8 +389,8 @@ final class ArrayTrieNode<Value> {
         let oldPrefix = prefixSlice.dropFirst(parentPrefix.count)
         
         // Create new nodes for the divergent paths
-        let newNode = Self(prefix: Array(newPrefix), value: value, children: [:])
-        let oldNode = with(prefix: Array(oldPrefix), children: children)
+        let newNode = Self(prefix: Array(newPrefix.dropFirst()), value: value, children: [:])
+        let oldNode = with(prefix: Array(oldPrefix.dropFirst()), children: children)
         var newChildren: ChildMap = [:]
         newChildren[newPrefix.first!] = newNode
         newChildren[oldPrefix.first!] = oldNode
@@ -424,11 +420,11 @@ final class ArrayTrieNode<Value> {
             
             // If there's no matching child, create a new one
             guard let childNode = children[firstSuffixValue] else {
-                return with(child: firstSuffixValue, node: Self(prefix: Array(suffix), value: value, children: [:]))
+                return with(child: firstSuffixValue, node: Self(prefix: Array(suffix.dropFirst()), value: value, children: [:]))
             }
             
             // Otherwise, recursively set in the matching child
-            return with(child: firstSuffixValue, node: childNode.setting(keys: suffix, to: value))
+            return with(child: firstSuffixValue, node: childNode.setting(keys: suffix.dropFirst(), to: value))
         }
         
         // Case 2: This node's prefix starts with the keys
@@ -436,7 +432,7 @@ final class ArrayTrieNode<Value> {
             // Split this node into two parts
             let suffix = prefix.dropFirst(keys.count)
             var newChild: ChildMap = [:]
-            newChild[suffix.first!] = with(prefix: Array(suffix), children: children)
+            newChild[suffix.first!] = with(prefix: Array(suffix.dropFirst()), children: children)
             return Self(prefix: Array(keys), value: value, children: newChild)
         }
         
@@ -447,8 +443,8 @@ final class ArrayTrieNode<Value> {
         let oldPrefix = prefixSlice.dropFirst(parentPrefix.count)
         
         // Create new nodes for the divergent paths
-        let newNode = Self(prefix: Array(newPrefix), value: value, children: [:])
-        let oldNode = with(prefix: Array(oldPrefix), children: children)
+        let newNode = Self(prefix: Array(newPrefix.dropFirst()), value: value, children: [:])
+        let oldNode = with(prefix: Array(oldPrefix.dropFirst()), children: children)
         var newChildren: ChildMap = [:]
         newChildren[newPrefix.first!] = newNode
         newChildren[oldPrefix.first!] = oldNode
@@ -468,7 +464,7 @@ final class ArrayTrieNode<Value> {
             let suffix = prefix.dropFirst(path.count)
             guard let firstSuffix = suffix.first else { return (children, value) }
             var newChild: ChildMap = [:]
-            newChild[firstSuffix] = Self(prefix: Array(suffix), value: value, children: children)
+            newChild[firstSuffix] = Self(prefix: Array(suffix.dropFirst()), value: value, children: children)
             return (newChild, nil)
         }
         
@@ -483,7 +479,7 @@ final class ArrayTrieNode<Value> {
         guard let child = children[firstSuffix] else { return nil }
         
         // Recursively traverse in the matching child node
-        return child.traverse(suffix)
+        return child.traverse(suffix.dropFirst())
     }
     
     /**
@@ -516,7 +512,7 @@ final class ArrayTrieNode<Value> {
             // Self prefix is a subset of other - restructure with self as parent
             let otherSuffix = Array(other.prefix.dropFirst(self.prefix.count))
             let otherChildKey = otherSuffix.first!
-            let otherChildNode = ArrayTrieNode(prefix: otherSuffix, value: other.value, children: other.children)
+            let otherChildNode = ArrayTrieNode(prefix: Array(otherSuffix.dropFirst()), value: other.value, children: other.children)
             
             // Merge with existing child if it exists
             let mergedChildren: ChildMap
@@ -537,7 +533,7 @@ final class ArrayTrieNode<Value> {
             // Other prefix is a subset of self - restructure with other as parent
             let selfSuffix = Array(self.prefix.dropFirst(other.prefix.count))
             let selfChildKey = selfSuffix.first!
-            let selfChildNode = ArrayTrieNode(prefix: selfSuffix, value: self.value, children: self.children)
+            let selfChildNode = ArrayTrieNode(prefix: Array(selfSuffix.dropFirst()), value: self.value, children: self.children)
             
             // Merge with existing child if it exists
             let mergedChildren: ChildMap
@@ -563,8 +559,8 @@ final class ArrayTrieNode<Value> {
             let selfChildKey = selfSuffix.first!
             let otherChildKey = otherSuffix.first!
             
-            let selfChildNode = ArrayTrieNode(prefix: selfSuffix, value: self.value, children: self.children)
-            let otherChildNode = ArrayTrieNode(prefix: otherSuffix, value: other.value, children: other.children)
+            let selfChildNode = ArrayTrieNode(prefix: Array(selfSuffix.dropFirst()), value: self.value, children: self.children)
+            let otherChildNode = ArrayTrieNode(prefix: Array(otherSuffix.dropFirst()), value: other.value, children: other.children)
             
             var newChildren: ChildMap = [:]
             newChildren[selfChildKey] = selfChildNode
@@ -610,7 +606,7 @@ final class ArrayTrieNode<Value> {
         guard let child = getChild(firstValue) else { return self }
         
         // Recursively delete in the matching child node
-        guard let childResult = child.deleting(suffix) else {
+        guard let childResult = child.deleting(suffix.dropFirst()) else {
             // Child was deleted, handle this node accordingly
             if value != nil || children.count > 2 {
                 // This node has a value or multiple children, just remove the deleted child
@@ -618,9 +614,9 @@ final class ArrayTrieNode<Value> {
             }
             
             // This node has exactly one remaining child, merge with it
-            let remainingChildren = children.values().filter { $0.prefix.first! != firstValue }
-            let childNode = remainingChildren.first!
-            return Self(prefix: prefix + childNode.prefix, value: childNode.value, children: childNode.children)
+            let remainingChildKey = children.keys().filter { $0 != firstValue }.first!
+            let remainingChild = children[remainingChildKey]!
+            return Self(prefix: prefix + [remainingChildKey] + remainingChild.prefix, value: remainingChild.value, children: remainingChild.children)
         }
         
         // Child was updated, update this node accordingly

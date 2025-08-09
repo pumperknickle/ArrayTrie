@@ -492,6 +492,904 @@ import TrieDictionary
         #expect(subtrie == nil)
     }
     
+    // MARK: - Additional String Path Traversal Tests
+    
+    @Test func testTraverseStringPathEmptyString() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with various keys
+        trie.set([""], value: "Empty Key")
+        trie.set(["a"], value: "A")
+        trie.set(["ab"], value: "AB")
+        
+        // Traverse with empty string
+        let subtrie = trie.traverse(path: "")
+        
+        // Empty string should return the original trie since all keys start with empty prefix
+        #expect(subtrie != nil)
+        if let result = subtrie {
+            #expect(result.get([""]) == "Empty Key")
+            #expect(result.get(["a"]) == "A")
+            #expect(result.get(["ab"]) == "AB")
+        }
+    }
+    
+    @Test func testTraverseStringPathSingleCharacter() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie
+        trie.set(["a"], value: "Just A")
+        trie.set(["apple"], value: "Apple")
+        trie.set(["application"], value: "Application")
+        trie.set(["banana"], value: "Banana")
+        
+        // Traverse with single character
+        let subtrie = trie.traverse(path: "a")
+        
+        #expect(subtrie != nil)
+        if let result = subtrie {
+            #expect(!result.isEmpty())
+            // Should contain keys that start with "a" with "a" prefix removed
+            let keys = result.children.keys()
+            #expect(keys.contains("")) // for "a"
+            #expect(keys.contains("pple")) // for "apple"
+            #expect(keys.contains("pplication")) // for "application"
+            #expect(!keys.contains("banana")) // doesn't start with "a"
+        }
+    }
+    
+    @Test func testTraverseStringPathComplexPrefixes() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with complex prefix relationships
+        trie.set(["prefix"], value: "Prefix")
+        trie.set(["prefixed"], value: "Prefixed")
+        trie.set(["prefixing"], value: "Prefixing")
+        trie.set(["pre"], value: "Pre")
+        trie.set(["prepare"], value: "Prepare")
+        trie.set(["other"], value: "Other")
+        
+        // Traverse with "prefix"
+        let subtrie = trie.traverse(path: "prefix")
+        
+        #expect(subtrie != nil)
+        if let result = subtrie {
+            #expect(!result.isEmpty())
+            let keys = result.children.keys()
+            #expect(keys.contains("")) // for exact "prefix" match
+            #expect(keys.contains("ed")) // for "prefixed"
+            #expect(keys.contains("ing")) // for "prefixing"
+            #expect(!keys.contains("pre")) // doesn't start with "prefix"
+            #expect(!keys.contains("prepare")) // doesn't start with "prefix"
+        }
+    }
+    
+    @Test func testTraverseStringPathNoCommonPrefix() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with keys that don't share the search prefix
+        trie.set(["banana"], value: "Banana")
+        trie.set(["cherry"], value: "Cherry")
+        trie.set(["date"], value: "Date")
+        
+        // Traverse with prefix that doesn't exist
+        let subtrie = trie.traverse(path: "apple")
+        
+        // Should return nil since no keys start with "apple"
+        #expect(subtrie == nil)
+    }
+    
+    @Test func testTraverseStringPathCaseSensitive() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with case variations
+        trie.set(["Apple"], value: "Capital A")
+        trie.set(["apple"], value: "Lowercase a")
+        trie.set(["APPLE"], value: "All Caps")
+        
+        // Traverse with lowercase
+        let lowerSubtrie = trie.traverse(path: "apple")
+        #expect(lowerSubtrie != nil)
+        if let result = lowerSubtrie {
+            let keys = result.children.keys()
+            #expect(keys.contains("")) // exact match for "apple"
+            #expect(!keys.contains("Apple")) // case sensitive
+        }
+        
+        // Traverse with uppercase
+        let upperSubtrie = trie.traverse(path: "Apple")
+        #expect(upperSubtrie != nil)
+        if let result = upperSubtrie {
+            let keys = result.children.keys()
+            #expect(keys.contains("")) // exact match for "Apple"
+        }
+    }
+    
+    @Test func testTraverseStringPathNumbers() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with numeric prefixes
+        trie.set(["123"], value: "One Two Three")
+        trie.set(["1234"], value: "One Two Three Four")
+        trie.set(["12"], value: "One Two")
+        trie.set(["456"], value: "Four Five Six")
+        
+        // Traverse with numeric prefix
+        let subtrie = trie.traverse(path: "123")
+        
+        #expect(subtrie != nil)
+        if let result = subtrie {
+            let keys = result.children.keys()
+            #expect(keys.contains("")) // for "123"
+            #expect(keys.contains("4")) // for "1234"
+            #expect(!keys.contains("12")) // doesn't start with "123"
+        }
+    }
+    
+    @Test func testTraverseStringPathUnicode() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with Unicode characters
+        trie.set(["café"], value: "Coffee")
+        trie.set(["cafés"], value: "Coffees")
+        trie.set(["naïve"], value: "Naive")
+        trie.set(["🙂happy"], value: "Happy")
+        trie.set(["🙂sad"], value: "Sad")
+        
+        // Traverse with Unicode prefix
+        let cafeSubtrie = trie.traverse(path: "café")
+        #expect(cafeSubtrie != nil)
+        if let result = cafeSubtrie {
+            let keys = result.children.keys()
+            #expect(keys.contains("")) // for "café"
+            #expect(keys.contains("s")) // for "cafés"
+        }
+        
+        // Traverse with emoji prefix
+        let emojiSubtrie = trie.traverse(path: "🙂")
+        #expect(emojiSubtrie != nil)
+        if let result = emojiSubtrie {
+            let keys = result.children.keys()
+            #expect(keys.contains("happy"))
+            #expect(keys.contains("sad"))
+        }
+    }
+    
+    @Test func testTraverseStringPathSpecialCharacters() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with special characters
+        trie.set(["@user"], value: "User Mention")
+        trie.set(["@admin"], value: "Admin Mention")
+        trie.set(["#tag"], value: "Hashtag")
+        trie.set(["$variable"], value: "Variable")
+        trie.set(["file.txt"], value: "Text File")
+        trie.set(["file.pdf"], value: "PDF File")
+        
+        // Traverse with @ prefix
+        let mentionSubtrie = trie.traverse(path: "@")
+        #expect(mentionSubtrie != nil)
+        if let result = mentionSubtrie {
+            let keys = result.children.keys()
+            #expect(keys.contains("user"))
+            #expect(keys.contains("admin"))
+        }
+        
+        // Traverse with file prefix
+        let fileSubtrie = trie.traverse(path: "file")
+        #expect(fileSubtrie != nil)
+        if let result = fileSubtrie {
+            let keys = result.children.keys()
+            #expect(keys.contains(".txt"))
+            #expect(keys.contains(".pdf"))
+        }
+    }
+    
+    @Test func testTraverseStringPathDeepNesting() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with deeply nested structure
+        trie.set(["api", "v1", "users"], value: "V1 Users")
+        trie.set(["api", "v2", "users"], value: "V2 Users")
+        trie.set(["application"], value: "App")
+        trie.set(["app"], value: "Short App")
+        
+        // Traverse with "app" - should match both "app" and "application"
+        let appSubtrie = trie.traverse(path: "app")
+        #expect(appSubtrie != nil)
+        if let result = appSubtrie {
+            let keys = result.children.keys()
+            #expect(keys.contains("")) // for "app"
+            #expect(keys.contains("lication")) // for "application"
+        }
+        
+        // Traverse with "api" - should only match the "api" key
+        let apiSubtrie = trie.traverse(path: "api")
+        let resultTrie = apiSubtrie!.traverse([""])
+        #expect(apiSubtrie != nil)
+        if let result = apiSubtrie {
+            let keys = result.children.keys()
+            #expect(keys.contains("")) // we should have an entry for the exact match
+            #expect(!keys.contains("app"))// shouldn't contain unrelated keys
+            #expect(resultTrie!.get(["v1", "users"]) == "V1 Users")
+            #expect(resultTrie!.get(["v2", "users"]) == "V2 Users")
+        }
+    }
+    
+    @Test func testTraverseStringPathExactMatchVsPrefix() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie
+        trie.set(["test"], value: "Test Exact")
+        trie.set(["testing"], value: "Testing")
+        trie.set(["tester"], value: "Tester")
+        trie.set(["te"], value: "Te")
+        
+        // Traverse with exact match
+        let testSubtrie = trie.traverse(path: "test")
+        #expect(testSubtrie != nil)
+        if let result = testSubtrie {
+            // Should get exact match and longer matches starting with "test"
+            let keys = result.children.keys()
+            #expect(keys.contains("")) // for "test"
+            #expect(keys.contains("ing")) // for "testing"
+            #expect(keys.contains("er")) // for "tester"
+            #expect(!keys.contains("te")) // "te" doesn't start with "test"
+        }
+        
+        // Traverse with prefix that's shorter than some keys
+        let teSubtrie = trie.traverse(path: "te")
+        #expect(teSubtrie != nil)
+        if let result = teSubtrie {
+            let keys = result.children.keys()
+            #expect(keys.contains("")) // for "te"
+            #expect(keys.contains("st")) // for "test"
+            #expect(keys.contains("sting")) // for "testing"
+            #expect(keys.contains("ster")) // for "tester"
+        }
+    }
+    
+    @Test func testTraverseStringPathWithRootValue() {
+        var trie = ArrayTrie<String>()
+        
+        // Set root value
+        trie.set([], value: "Root Value")
+        
+        // Set regular values
+        trie.set(["test"], value: "Test")
+        trie.set(["temp"], value: "Temp")
+        
+        // Traverse should work correctly
+        let testSubtrie = trie.traverse(path: "te")
+        #expect(testSubtrie != nil)
+        if let result = testSubtrie {
+            // The traverse(path: String) method doesn't preserve original root values
+            // It only sets root value if there's an empty string match in the traversed result
+            #expect(result.get([]) == nil) // No root value expected for this traversal
+            // Should contain the filtered keys
+            let keys = result.children.keys()
+            #expect(keys.contains("st"))
+            #expect(keys.contains("mp"))
+        }
+        
+        // Test with empty string traversal which should preserve structure
+        let emptySubtrie = trie.traverse(path: "")
+        #expect(emptySubtrie != nil)
+        if let result = emptySubtrie {
+            // Empty string traversal should include all keys including empty string key for root
+            #expect(result.get(["test"]) == "Test")
+            #expect(result.get(["temp"]) == "Temp")
+        }
+    }
+    
+    @Test func testTraverseStringPathAfterOperations() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up initial data
+        trie.set(["apple"], value: "Apple")
+        trie.set(["application"], value: "Application")
+        trie.set(["banana"], value: "Banana")
+        
+        // Traverse and verify
+        var subtrie = trie.traverse(path: "app")
+        #expect(subtrie != nil)
+        
+        // Delete a key and traverse again
+        trie = trie.deleting(path: ["apple"])
+        subtrie = trie.traverse(path: "app")
+        #expect(subtrie != nil)
+        if let result = subtrie {
+            let keys = result.children.keys()
+            #expect(!keys.contains("le")) // "apple" was deleted
+            #expect(keys.contains("lication")) // "application" should remain
+        }
+        
+        // Add new key and traverse again
+        trie.set(["approach"], value: "Approach")
+        subtrie = trie.traverse(path: "app")
+        #expect(subtrie != nil)
+        if let result = subtrie {
+            let keys = result.children.keys()
+            #expect(keys.contains("lication"))
+            #expect(keys.contains("roach")) // new key should be included
+        }
+    }
+    
+    @Test func testTraverseStringPathPerformance() {
+        var trie = ArrayTrie<String>()
+        
+        // Add many keys with common prefix
+        for i in 0..<1000 {
+            trie.set(["prefix\(i)"], value: "Value \(i)")
+        }
+        
+        // Add keys with different prefixes
+        for i in 0..<100 {
+            trie.set(["other\(i)"], value: "Other \(i)")
+        }
+        
+        // Traverse with common prefix
+        let subtrie = trie.traverse(path: "prefix")
+        #expect(subtrie != nil)
+        if let result = subtrie {
+            #expect(!result.isEmpty())
+            // Should contain all 1000 keys starting with "prefix"
+            let keys = result.children.keys()
+            #expect(keys.count >= 1000) // at least the numbered suffixes
+        }
+        
+        // Traverse with less common prefix
+        let otherSubtrie = trie.traverse(path: "other")
+        #expect(otherSubtrie != nil)
+        if let result = otherSubtrie {
+            let keys = result.children.keys()
+            #expect(keys.count >= 100) // at least the numbered suffixes
+        }
+    }
+    
+    @Test func testTraverseStringPathEdgeCases() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up edge cases
+        trie.set([" "], value: "Space")
+        trie.set(["\t"], value: "Tab")
+        trie.set(["\n"], value: "Newline")
+        trie.set(["normal"], value: "Normal")
+        
+        // Traverse with space
+        let spaceSubtrie = trie.traverse(path: " ")
+        #expect(spaceSubtrie != nil)
+        
+        // Traverse with tab
+        let tabSubtrie = trie.traverse(path: "\t")
+        #expect(tabSubtrie != nil)
+        
+        // Traverse with newline
+        let newlineSubtrie = trie.traverse(path: "\n")
+        #expect(newlineSubtrie != nil)
+        
+        // All should return valid subtries
+        #expect(spaceSubtrie?.get([""]) == "Space")
+        #expect(tabSubtrie?.get([""]) == "Tab")
+        #expect(newlineSubtrie?.get([""]) == "Newline")
+    }
+    
+    @Test func testTraverseStringPathLongPrefix() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up with very long common prefix
+        let longPrefix = String(repeating: "a", count: 100)
+        trie.set([longPrefix], value: "Long A's")
+        trie.set([longPrefix + "b"], value: "Long A's + B")
+        trie.set([longPrefix + "c"], value: "Long A's + C")
+        trie.set(["different"], value: "Different")
+        
+        // Traverse with the long prefix
+        let subtrie = trie.traverse(path: longPrefix)
+        #expect(subtrie != nil)
+        if let result = subtrie {
+            let keys = result.children.keys()
+            #expect(keys.contains("")) // exact match
+            #expect(keys.contains("b")) // suffix for longPrefix + "b"
+            #expect(keys.contains("c")) // suffix for longPrefix + "c"
+            #expect(!keys.contains("different")) // unrelated key
+        }
+    }
+    
+    // MARK: - String Path Traversal Values and Contents Tests
+    
+    @Test func testTraverseStringPathGetValues() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with various paths and values
+        trie.set(["user"], value: "User Root")
+        trie.set(["users"], value: "Users Plural")
+        trie.set(["user_profile"], value: "User Profile")
+        trie.set(["user_settings"], value: "User Settings")
+        trie.set(["username"], value: "Username")
+        trie.set(["admin"], value: "Admin")
+        
+        // Traverse with "user"
+        let userSubtrie = trie.traverse(path: "user")
+        #expect(userSubtrie != nil)
+        
+        if let result = userSubtrie {
+            // Test getting values using the remaining suffixes
+            #expect(result.get([""]) == "User Root")  // exact match for "user"
+            #expect(result.get(["s"]) == "Users Plural")  // for "users"
+            #expect(result.get(["_profile"]) == "User Profile")  // for "user_profile"
+            #expect(result.get(["_settings"]) == "User Settings")  // for "user_settings"
+            #expect(result.get(["name"]) == "Username")  // for "username"
+            
+            // Non-existent paths should return nil
+            #expect(result.get(["admin"]) == nil)  // "admin" doesn't start with "user"
+            #expect(result.get(["xyz"]) == nil)  // doesn't exist
+        }
+    }
+    
+    @Test func testTraverseStringPathVerifyContents() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up hierarchical structure
+        trie.set(["api", "v1", "users"], value: "V1 Users")
+        trie.set(["api", "v2", "users"], value: "V2 Users")
+        trie.set(["api", "v1", "posts"], value: "V1 Posts")
+        trie.set(["app"], value: "Application")
+        trie.set(["apple"], value: "Fruit")
+        trie.set(["application"], value: "Full App")
+        
+        // Traverse with "app"
+        let appSubtrie = trie.traverse(path: "app")
+        #expect(appSubtrie != nil)
+        
+        if let result = appSubtrie {
+            // Verify the structure contains expected keys
+            let childKeys = result.children.keys()
+            #expect(childKeys.contains(""))  // for "app"
+            #expect(childKeys.contains("le"))  // for "apple"  
+            #expect(childKeys.contains("lication"))  // for "application"
+            
+            // Verify we can get the correct values
+            #expect(result.get([""]) == "Application")
+            #expect(result.get(["le"]) == "Fruit")
+            #expect(result.get(["lication"]) == "Full App")
+            
+            // Verify API paths are not included (don't start with "app")
+            #expect(result.get(["api", "v1", "users"]) == nil)
+            #expect(!result.isEmpty())
+        }
+        
+        // Traverse with "api" and verify hierarchical structure is preserved
+        let apiSubtrie = trie.traverse(path: "api")
+        #expect(apiSubtrie != nil)
+        
+        if let result = apiSubtrie {
+            // The traversed trie should contain the original hierarchical structure
+            // but without the "api" prefix
+            let childKeys = result.children.keys()
+            #expect(childKeys.contains(""))  // There should be an exact match path
+            
+            // However, the original API structure should be accessible through some means
+            // Since the path was "api", we should be able to access the nested structure
+            #expect(!result.isEmpty())
+        }
+    }
+    
+    @Test func testTraverseStringPathComplexValueRetrieval() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up complex nested structure with overlapping prefixes
+        trie.set(["test"], value: "Test Base")
+        trie.set(["testing"], value: "Testing Activity")  
+        trie.set(["tester"], value: "Person Who Tests")
+        trie.set(["test_case"], value: "Test Case")
+        trie.set(["test_suite"], value: "Test Suite")
+        trie.set(["template"], value: "Template")
+        trie.set(["temporary"], value: "Temporary")
+        trie.set(["ten"], value: "Number Ten")
+        
+        // Traverse with "test"
+        let testSubtrie = trie.traverse(path: "test")
+        #expect(testSubtrie != nil)
+        
+        if let result = testSubtrie {
+            // Verify all "test*" values are accessible
+            #expect(result.get([""]) == "Test Base")
+            #expect(result.get(["ing"]) == "Testing Activity")
+            #expect(result.get(["er"]) == "Person Who Tests")
+            #expect(result.get(["_case"]) == "Test Case")
+            #expect(result.get(["_suite"]) == "Test Suite")
+            
+            // Verify non-"test*" values are not accessible
+            #expect(result.get(["template"]) == nil)
+            #expect(result.get(["temporary"]) == nil)
+            #expect(result.get(["ten"]) == nil)
+            
+            // Verify the structure
+            let keys = result.children.keys()
+            #expect(keys.contains(""))  // for "test"
+            #expect(keys.contains("ing"))  // for "testing"
+            #expect(keys.contains("er"))  // for "tester" 
+            #expect(keys.contains("_case"))  // for "test_case"
+            #expect(keys.contains("_suite"))  // for "test_suite"
+            #expect(!keys.contains("template"))  // shouldn't be there
+        }
+        
+        // Traverse with "te" to get broader set
+        let teSubtrie = trie.traverse(path: "te")
+        #expect(teSubtrie != nil)
+        
+        if let result = teSubtrie {
+            // Should include all "te*" values
+            #expect(result.get(["st"]) == "Test Base")
+            #expect(result.get(["sting"]) == "Testing Activity")
+            #expect(result.get(["ster"]) == "Person Who Tests")
+            #expect(result.get(["mplate"]) == "Template")
+            #expect(result.get(["mporary"]) == "Temporary")
+            #expect(result.get(["n"]) == "Number Ten")
+            
+            let keys = result.children.keys()
+            #expect(keys.contains("st"))  // for "test"
+            #expect(keys.contains("mplate"))  // for "template"
+            #expect(keys.contains("n"))  // for "ten"
+        }
+    }
+    
+    @Test func testTraverseStringPathOperationsOnResult() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up initial structure
+        trie.set(["prefix_a"], value: "A")
+        trie.set(["prefix_b"], value: "B")
+        trie.set(["prefix_c"], value: "C")
+        trie.set(["other"], value: "Other")
+        
+        // Traverse to get subtrie
+        let subtrie = trie.traverse(path: "prefix")
+        #expect(subtrie != nil)
+        
+        if var result = subtrie {
+            // Test that we can perform operations on the traversed trie
+            #expect(result.get(["_a"]) == "A")
+            #expect(result.get(["_b"]) == "B")
+            #expect(result.get(["_c"]) == "C")
+            #expect(result.get(["other"]) == nil)  // not in this subtrie
+            
+            // Test that we can modify the traversed trie
+            result.set(["_d"], value: "D")
+            #expect(result.get(["_d"]) == "D")
+            
+            // Verify the modification doesn't affect the original trie
+            #expect(trie.get(["prefix_d"]) == nil)  // original unchanged
+            #expect(trie.get(["prefix_a"]) == "A")  // original still has this
+            
+            // Test deletion on the traversed trie
+            let deletedResult = result.deleting(path: ["_a"])
+            #expect(deletedResult.get(["_a"]) == nil)
+            #expect(deletedResult.get(["_b"]) == "B")  // others remain
+            
+            // Original trie should be unchanged
+            #expect(trie.get(["prefix_a"]) == "A")
+            
+            // Test isEmpty on traversed trie
+            #expect(!result.isEmpty())
+            
+            // Create an empty traversed trie
+            let emptySubtrie = trie.traverse(path: "nonexistent")
+            #expect(emptySubtrie == nil)
+        }
+    }
+    
+    @Test func testTraverseStringPathNestedTraversals() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up simpler structure for clearer testing
+        trie.set(["prefix_group1_item1"], value: "Group1 Item1")
+        trie.set(["prefix_group1_item2"], value: "Group1 Item2")
+        trie.set(["prefix_group2_item1"], value: "Group2 Item1")
+        trie.set(["prefix_other"], value: "Other")
+        trie.set(["different"], value: "Different")
+        
+        // First traversal: narrow down to "prefix"
+        let prefixTrie = trie.traverse(path: "prefix")
+        #expect(prefixTrie != nil)
+        
+        if let pTrie = prefixTrie {
+            // Should contain all "prefix*" entries with prefix removed
+            #expect(pTrie.get(["_group1_item1"]) == "Group1 Item1")
+            #expect(pTrie.get(["_group1_item2"]) == "Group1 Item2")
+            #expect(pTrie.get(["_group2_item1"]) == "Group2 Item1")
+            #expect(pTrie.get(["_other"]) == "Other")
+            
+            // Should not contain non-prefix entries
+            #expect(pTrie.get(["different"]) == nil)
+            
+            // Now traverse within the traversed trie to narrow to "group1"
+            let group1Trie = pTrie.traverse(path: "_group1")
+            #expect(group1Trie != nil)
+            
+            if let g1Trie = group1Trie {
+                // This should only contain "group1" related entries
+                #expect(g1Trie.get(["_item1"]) == "Group1 Item1")
+                #expect(g1Trie.get(["_item2"]) == "Group1 Item2")
+                
+                // Should not contain group2 or other items
+                #expect(g1Trie.get(["_group2_item1"]) == nil)
+                #expect(g1Trie.get(["_other"]) == nil)
+                
+                // Test further nested traversal to get just items
+                let itemTrie = g1Trie.traverse(path: "_item")
+                #expect(itemTrie != nil)
+                
+                if let iTrie = itemTrie {
+                    #expect(iTrie.get(["1"]) == "Group1 Item1")
+                    #expect(iTrie.get(["2"]) == "Group1 Item2")
+                }
+            }
+            
+            // Test parallel traversal for group2
+            let group2Trie = pTrie.traverse(path: "_group2")
+            #expect(group2Trie != nil)
+            
+            if let g2Trie = group2Trie {
+                #expect(g2Trie.get(["_item1"]) == "Group2 Item1")
+                // Should not contain group1 items
+                #expect(g2Trie.get(["_group1_item1"]) == nil)
+            }
+        }
+    }
+    
+    @Test func testTraverseStringPathWithDifferentValueTypes() {
+        var intTrie = ArrayTrie<Int>()
+        var arrayTrie = ArrayTrie<[String]>()
+        
+        // Set up integer trie
+        intTrie.set(["count_1"], value: 1)
+        intTrie.set(["count_10"], value: 10)
+        intTrie.set(["count_100"], value: 100)
+        intTrie.set(["total"], value: 111)
+        
+        // Traverse integer trie
+        let countTrie = intTrie.traverse(path: "count")
+        #expect(countTrie != nil)
+        
+        if let result = countTrie {
+            #expect(result.get(["_1"]) == 1)
+            #expect(result.get(["_10"]) == 10)
+            #expect(result.get(["_100"]) == 100)
+            #expect(result.get(["total"]) == nil)  // doesn't start with "count"
+            
+            // Verify we can perform arithmetic operations
+            let sum = (result.get(["_1"]) ?? 0) + (result.get(["_10"]) ?? 0) + (result.get(["_100"]) ?? 0)
+            #expect(sum == 111)
+        }
+        
+        // Set up array trie
+        arrayTrie.set(["tags_red"], value: ["red", "color", "primary"])
+        arrayTrie.set(["tags_blue"], value: ["blue", "color", "primary"])
+        arrayTrie.set(["tags_green"], value: ["green", "color", "secondary"])
+        arrayTrie.set(["categories"], value: ["misc"])
+        
+        // Traverse array trie
+        let tagsTrie = arrayTrie.traverse(path: "tags")
+        #expect(tagsTrie != nil)
+        
+        if let result = tagsTrie {
+            #expect(result.get(["_red"]) == ["red", "color", "primary"])
+            #expect(result.get(["_blue"]) == ["blue", "color", "primary"])
+            #expect(result.get(["_green"]) == ["green", "color", "secondary"])
+            #expect(result.get(["categories"]) == nil)
+            
+            // Verify array operations work
+            let redTags = result.get(["_red"]) ?? []
+            #expect(redTags.count == 3)
+            #expect(redTags.contains("red"))
+            #expect(redTags.contains("color"))
+        }
+    }
+    
+    @Test func testTraverseStringPathEmptyAndExactMatches() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up with empty string and exact matches
+        trie.set([""], value: "Empty Root")
+        trie.set(["search"], value: "Search Exact")
+        trie.set(["search_query"], value: "Search Query")
+        trie.set(["search_results"], value: "Search Results")
+        
+        // Traverse with empty string
+        let emptyTraversal = trie.traverse(path: "")
+        #expect(emptyTraversal != nil)
+        
+        if let result = emptyTraversal {
+            // Empty string traversal should return everything
+            #expect(result.get([""]) == "Empty Root")
+            #expect(result.get(["search"]) == "Search Exact")
+            #expect(result.get(["search_query"]) == "Search Query")
+            #expect(result.get(["search_results"]) == "Search Results")
+        }
+        
+        // Traverse with exact match
+        let searchTraversal = trie.traverse(path: "search")
+        #expect(searchTraversal != nil)
+        
+        if let result = searchTraversal {
+            // Should get exact match and extensions
+            #expect(result.get([""]) == "Search Exact")
+            #expect(result.get(["_query"]) == "Search Query")
+            #expect(result.get(["_results"]) == "Search Results")
+            
+            // Should not get the empty root or unrelated entries
+            #expect(result.get(["empty"]) == nil)
+            
+            // Verify keys structure
+            let keys = result.children.keys()
+            #expect(keys.contains(""))  // exact match
+            #expect(keys.contains("_query"))
+            #expect(keys.contains("_results"))
+            #expect(keys.count == 3)
+        }
+    }
+    
+    @Test func testTraverseStringPathStructuralIntegrity() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up complex overlapping structure
+        trie.set(["a"], value: "A")
+        trie.set(["ab"], value: "AB") 
+        trie.set(["abc"], value: "ABC")
+        trie.set(["abcd"], value: "ABCD")
+        trie.set(["ab_test"], value: "AB Test")
+        trie.set(["ac"], value: "AC")
+        trie.set(["b"], value: "B")
+        
+        // Test traversal at different levels
+        let aTraversal = trie.traverse(path: "a")
+        #expect(aTraversal != nil)
+        
+        if let aResult = aTraversal {
+            // Verify complete "a*" structure
+            #expect(aResult.get([""]) == "A")
+            #expect(aResult.get(["b"]) == "AB")
+            #expect(aResult.get(["bc"]) == "ABC")
+            #expect(aResult.get(["bcd"]) == "ABCD")
+            #expect(aResult.get(["b_test"]) == "AB Test")
+            #expect(aResult.get(["c"]) == "AC")
+            
+            // Should not contain "b"
+            #expect(aResult.get(["B"]) == nil)
+            
+            // Verify structure is properly nested
+            let keys = aResult.children.keys()
+            #expect(keys.contains(""))
+            #expect(keys.contains("b"))
+            #expect(keys.contains("c"))
+            #expect(!keys.contains("B"))  // case sensitive
+            
+            // Test further traversal
+            let abTraversal = aResult.traverse(path: "b")
+            #expect(abTraversal != nil)
+            
+            if let abResult = abTraversal {
+                #expect(abResult.get([""]) == "AB")
+                #expect(abResult.get(["c"]) == "ABC")
+                #expect(abResult.get(["cd"]) == "ABCD")
+                #expect(abResult.get(["_test"]) == "AB Test")
+                
+                // Should not contain "ac" branch
+                #expect(abResult.get(["c"]) == "ABC")  // this is "abc"
+                #expect(abResult.get(["AC"]) == nil)   // this would be from original "ac"
+            }
+        }
+    }
+    
+    @Test func testTraverseStringPathMemoryAndReferences() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up reference data
+        let largeString = String(repeating: "data", count: 1000)
+        trie.set(["large_data_1"], value: largeString + "_1")
+        trie.set(["large_data_2"], value: largeString + "_2") 
+        trie.set(["small"], value: "small")
+        
+        // Traverse to get subtrie
+        let largeTraversal = trie.traverse(path: "large")
+        #expect(largeTraversal != nil)
+        
+        if let result = largeTraversal {
+            // Verify the large data is accessible
+            #expect(result.get(["_data_1"]) == largeString + "_1")
+            #expect(result.get(["_data_2"]) == largeString + "_2")
+            #expect(result.get(["small"]) == nil)
+            
+            // Verify the traversed trie is independent
+            var mutableResult = result
+            mutableResult.set(["_data_3"], value: largeString + "_3")
+            
+            // New value should be in the traversed trie
+            #expect(mutableResult.get(["_data_3"]) == largeString + "_3")
+            
+            // But not in the original trie
+            #expect(trie.get(["large_data_3"]) == nil)
+            
+            // Original values should still be accessible in original trie
+            #expect(trie.get(["large_data_1"]) == largeString + "_1")
+            #expect(trie.get(["small"]) == "small")
+        }
+    }
+    
+    @Test func testTraverseStringPathCompleteValueValidation() {
+        var trie = ArrayTrie<String>()
+        
+        // Create comprehensive test data
+        let testData = [
+            ("user", "User"),
+            ("user_admin", "User Admin"),
+            ("user_guest", "User Guest"),
+            ("users", "Multiple Users"),
+            ("username", "Username Field"),
+            ("utility", "Utility Function"),
+            ("utils", "Utilities"),
+            ("completely_different", "Different")
+        ]
+        
+        for (path, value) in testData {
+            trie.set([path], value: value)
+        }
+        
+        // Traverse with "user"
+        let userTraversal = trie.traverse(path: "user")
+        #expect(userTraversal != nil)
+        
+        if let result = userTraversal {
+            // Test every expected value
+            #expect(result.get([""]) == "User")
+            #expect(result.get(["_admin"]) == "User Admin")
+            #expect(result.get(["_guest"]) == "User Guest")
+            #expect(result.get(["s"]) == "Multiple Users")
+            #expect(result.get(["name"]) == "Username Field")
+            
+            // Test values that should NOT be there
+            #expect(result.get(["utility"]) == nil)
+            #expect(result.get(["utils"]) == nil)
+            #expect(result.get(["completely_different"]) == nil)
+            
+            // Verify complete structure
+            let allKeys = result.children.keys()
+            let expectedKeys = ["", "_admin", "_guest", "s", "name"]
+            #expect(allKeys.count == expectedKeys.count)
+            
+            for key in expectedKeys {
+                #expect(allKeys.contains(key), "Expected key '\(key)' not found")
+            }
+            
+            // Test that we can traverse the traversed result further
+            let userAdminTraversal = result.traverse(path: "_")
+            #expect(userAdminTraversal != nil)
+            
+            if let adminResult = userAdminTraversal {
+                #expect(adminResult.get(["admin"]) == "User Admin")
+                #expect(adminResult.get(["guest"]) == "User Guest")
+                #expect(adminResult.get(["s"]) == nil)  // "_s" doesn't exist
+            }
+        }
+        
+        // Test broader traversal
+        let uTraversal = trie.traverse(path: "u")
+        #expect(uTraversal != nil)
+        
+        if let result = uTraversal {
+            // Should contain all "u*" entries
+            #expect(result.get(["ser"]) == "User")
+            #expect(result.get(["tility"]) == "Utility Function")
+            #expect(result.get(["tils"]) == "Utilities")
+            #expect(result.get(["sers"]) == "Multiple Users")
+            
+            // Should not contain non-"u*" entries
+            #expect(result.get(["completely_different"]) == nil)
+        }
+    }
+    
     // MARK: - GetValuesAlongPath Tests
     
     @Test func testGetValuesAlongPathBasic() {
@@ -1307,341 +2205,378 @@ import TrieDictionary
         #expect(values.contains("B"))
     }
     
-    // MARK: - GetKeyValuesAlongPath Tests
+    // MARK: - TraverseChild Tests
     
-    @Test func testGetKeyValuesAlongPathBasic() {
+    @Test func testTraverseChildBasic() {
         var trie = ArrayTrie<String>()
         
-        // Set up the trie with values at different path levels
-        trie.set(["u"], value: "U")
-        trie.set(["us"], value: "US")
-        trie.set(["use"], value: "USE")
-        trie.set(["user"], value: "USER")
-        trie.set(["users"], value: "USERS")
+        // Set up the trie with keys starting with different characters
+        trie.set(["apple"], value: "APPLE")
+        trie.set(["banana"], value: "BANANA")
+        trie.set(["apricot"], value: "APRICOT")
         
-        // Get key-value pairs along the path "user"
-        let results = trie.getKeyValuesAlongPath("user")
+        // Traverse child with 'a'
+        let result = trie.traverseChild("a")
         
-        // Convert results to a dictionary for easier testing
-        let resultDict = Dictionary(uniqueKeysWithValues: results)
-        
-        // getKeyValuesAlongPath returns key-value pairs from keys that are prefixes of the path
-        #expect(resultDict["u"] == "U")
-        #expect(resultDict["us"] == "US")
-        #expect(resultDict["use"] == "USE")
-        #expect(resultDict["user"] == "USER")
-        // "users" should not be included as it's longer than the search path
-        #expect(resultDict["users"] == nil)
-        #expect(results.count == 4)
+        #expect(result != nil)
+        if let subtrie = result {
+            // Should find keys starting with 'a' in the children
+            #expect(!subtrie.isEmpty())
+            // The subtrie should maintain the root value (if any) and have filtered children
+            let keys = subtrie.children.keys()
+            #expect(!keys.isEmpty)
+        }
     }
     
-    @Test func testGetKeyValuesAlongPathEmpty() {
-        let trie = ArrayTrie<String>()
-        
-        // Get key-values from empty trie
-        let results = trie.getKeyValuesAlongPath("anything")
-        
-        // Should return empty array
-        #expect(results.isEmpty)
-    }
-    
-    @Test func testGetKeyValuesAlongPathEmptyString() {
+    @Test func testTraverseChildNonExistent() {
         var trie = ArrayTrie<String>()
         
-        // Set up the trie
-        trie.set(["a"], value: "A")
-        trie.set(["b"], value: "B")
-        
-        // Get key-values along empty path
-        let results = trie.getKeyValuesAlongPath("")
-        
-        // Empty string returns empty array since no keys are prefixes of empty string
-        #expect(results.isEmpty)
-    }
-    
-    @Test func testGetKeyValuesAlongPathNoMatches() {
-        var trie = ArrayTrie<String>()
-        
-        // Set up the trie with values that don't match the search path
+        // Set up the trie with keys not starting with 'z'
         trie.set(["apple"], value: "APPLE")
         trie.set(["banana"], value: "BANANA")
         
-        // Get key-values along a path that doesn't exist
-        let results = trie.getKeyValuesAlongPath("orange")
+        // Traverse child with character not in trie
+        let result = trie.traverseChild("z")
         
-        // Should return empty array
-        #expect(results.isEmpty)
+        #expect(result == nil)
     }
     
-    @Test func testGetKeyValuesAlongPathPartialMatches() {
-        var trie = ArrayTrie<String>()
-        
-        // Set up the trie with some matching and some non-matching keys
-        trie.set(["test"], value: "TEST")
-        trie.set(["testing"], value: "TESTING")
-        trie.set(["best"], value: "BEST")
-        trie.set(["rest"], value: "REST")
-        trie.set(["te"], value: "TE")
-        trie.set(["t"], value: "T")
-        
-        // Get key-values along path "test"
-        let results = trie.getKeyValuesAlongPath("test")
-        let resultDict = Dictionary(uniqueKeysWithValues: results)
-        
-        // Should return key-value pairs from keys that are prefixes of "test"
-        #expect(resultDict["test"] == "TEST")
-        #expect(resultDict["te"] == "TE")
-        #expect(resultDict["t"] == "T")
-        #expect(resultDict["testing"] == nil) // longer than search path
-        #expect(resultDict["best"] == nil)
-        #expect(resultDict["rest"] == nil)
-        #expect(results.count == 3)
-    }
-    
-    @Test func testGetKeyValuesAlongPathMultipleTypes() {
-        var intTrie = ArrayTrie<Int>()
-        var boolTrie = ArrayTrie<Bool>()
-        
-        // Set up tries with different value types
-        intTrie.set(["n"], value: 1)
-        intTrie.set(["nu"], value: 12)
-        intTrie.set(["num"], value: 123)
-        
-        boolTrie.set(["t"], value: true)
-        boolTrie.set(["tr"], value: false)
-        boolTrie.set(["tru"], value: true)
-        
-        // Get key-values along paths
-        let intResults = intTrie.getKeyValuesAlongPath("num")
-        let boolResults = boolTrie.getKeyValuesAlongPath("tr")
-        
-        let intDict = Dictionary(uniqueKeysWithValues: intResults)
-        let boolDict = Dictionary(uniqueKeysWithValues: boolResults)
-        
-        // Should return key-value pairs from keys that are prefixes of the search path
-        #expect(intDict["n"] == 1)  // "n" is prefix of "num"
-        #expect(intDict["nu"] == 12) // "nu" is prefix of "num"
-        #expect(intDict["num"] == 123) // "num" matches exactly
-        #expect(intResults.count == 3)
-        
-        #expect(boolDict["t"] == true)  // "t" is prefix of "tr"
-        #expect(boolDict["tr"] == false) // "tr" matches exactly
-        #expect(boolResults.count == 2)
-    }
-    
-    @Test func testGetKeyValuesAlongPathWithSpecialCharacters() {
-        var trie = ArrayTrie<String>()
-        
-        // Set up the trie with keys containing special characters
-        trie.set(["user@domain.com"], value: "Email User")
-        trie.set(["user-name"], value: "Hyphenated User")
-        trie.set(["user_id"], value: "Underscore User")
-        trie.set(["user"], value: "Simple User")
-        
-        // Get key-values using partial string with special characters
-        let results = trie.getKeyValuesAlongPath("user")
-        let resultDict = Dictionary(uniqueKeysWithValues: results)
-        
-        // Should return the exact match
-        #expect(resultDict["user"] == "Simple User")
-        #expect(results.count == 1)
-        
-        // Test with longer search path
-        let emailResults = trie.getKeyValuesAlongPath("user@domain.com")
-        let emailDict = Dictionary(uniqueKeysWithValues: emailResults)
-        
-        #expect(emailDict["user"] == "Simple User")
-        #expect(emailDict["user@domain.com"] == "Email User")
-        #expect(emailResults.count == 2)
-    }
-    
-    @Test func testGetKeyValuesAlongPathEmptyTrie() {
+    @Test func testTraverseChildEmptyTrie() {
         let trie = ArrayTrie<String>()
         
-        // Get key-values from empty trie
-        let results = trie.getKeyValuesAlongPath("anything")
+        // Traverse empty trie
+        let result = trie.traverseChild("a")
         
-        // Should return empty array
-        #expect(results.isEmpty)
+        #expect(result == nil)
     }
     
-    @Test func testGetKeyValuesAlongPathSingleCharacter() {
+    @Test func testTraverseChildSingleCharacterKeys() {
         var trie = ArrayTrie<String>()
         
-        // Set up trie with single character keys
-        trie.set(["a"], value: "Alpha")
-        trie.set(["b"], value: "Beta")
-        trie.set(["ab"], value: "AlphaBeta")
-        trie.set(["abc"], value: "AlphaBetaCharlie")
+        // Set up the trie with single character keys
+        trie.set(["a"], value: "A")
+        trie.set(["b"], value: "B")
+        trie.set(["c"], value: "C")
         
-        // Search for single character
-        let singleResults = trie.getKeyValuesAlongPath("a")
-        let singleDict = Dictionary(uniqueKeysWithValues: singleResults)
+        let resultA = trie.traverseChild("a")
+        let resultB = trie.traverseChild("b")
         
-        #expect(singleDict["a"] == "Alpha")
-        #expect(singleResults.count == 1)
+        #expect(resultA != nil)
+        #expect(resultB != nil)
         
-        // Search for two characters
-        let doubleResults = trie.getKeyValuesAlongPath("ab")
-        let doubleDict = Dictionary(uniqueKeysWithValues: doubleResults)
+        if let subtrieA = resultA {
+            #expect(!subtrieA.isEmpty())
+        }
         
-        #expect(doubleDict["a"] == "Alpha")
-        #expect(doubleDict["ab"] == "AlphaBeta")
-        #expect(doubleResults.count == 2)
+        if let subtrieB = resultB {
+            #expect(!subtrieB.isEmpty())
+        }
     }
     
-    @Test func testGetKeyValuesAlongPathDuplicateHandling() {
+    @Test func testTraverseChildPreservesRootValue() {
         var trie = ArrayTrie<String>()
         
-        // Set up trie with values
-        trie.set(["test"], value: "TEST1")
-        trie.set(["test"], value: "TEST2") // Overwrite
-        trie.set(["te"], value: "TE")
-        trie.set(["t"], value: "T")
+        // Set root value
+        trie.set([], value: "ROOT")
         
-        let results = trie.getKeyValuesAlongPath("test")
-        let resultDict = Dictionary(uniqueKeysWithValues: results)
+        // Set up the trie with keys
+        trie.set(["apple"], value: "APPLE")
+        trie.set(["banana"], value: "BANANA")
         
-        // Should have the overwritten value
-        #expect(resultDict["test"] == "TEST2")
-        #expect(resultDict["te"] == "TE")
-        #expect(resultDict["t"] == "T")
-        #expect(results.count == 3)
+        let result = trie.traverseChild("a")
+        
+        #expect(result != nil)
+        if let subtrie = result {
+            // Root value should be preserved
+            #expect(subtrie.get([]) == "ROOT")
+        }
     }
     
-    @Test func testGetKeyValuesAlongPathAfterDeletion() {
+    @Test func testTraverseChildMultiplePrefixes() {
         var trie = ArrayTrie<String>()
         
-        // Set up trie
-        trie.set(["user"], value: "USER")
-        trie.set(["use"], value: "USE")
-        trie.set(["us"], value: "US")
-        trie.set(["u"], value: "U")
+        // Set up the trie with multiple keys starting with same character
+        trie.set(["test"], value: "TEST")
+        trie.set(["team"], value: "TEAM")
+        trie.set(["tea"], value: "TEA")
+        trie.set(["tree"], value: "TREE")
         
-        var results = trie.getKeyValuesAlongPath("user")
-        #expect(results.count == 4)
+        let result = trie.traverseChild("t")
         
-        // Delete a path
-        trie = trie.deleting(path: ["use"])
-        results = trie.getKeyValuesAlongPath("user")
-        let resultDict = Dictionary(uniqueKeysWithValues: results)
-        
-        #expect(resultDict["user"] == "USER")
-        #expect(resultDict["us"] == "US")
-        #expect(resultDict["u"] == "U")
-        #expect(resultDict["use"] == nil)
-        #expect(results.count == 3)
+        #expect(result != nil)
+        if let subtrie = result {
+            #expect(!subtrie.isEmpty())
+            // Should have filtered children for keys starting with 't'
+            let keys = subtrie.children.keys()
+            #expect(!keys.isEmpty)
+        }
     }
     
-    @Test func testGetKeyValuesAlongPathAfterMerging() {
+    @Test func testTraverseChildSpecialCharacters() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with special characters
+        trie.set(["@mention"], value: "MENTION")
+        trie.set(["#hashtag"], value: "HASHTAG")
+        trie.set(["$dollar"], value: "DOLLAR")
+        
+        let mentionResult = trie.traverseChild("@")
+        let hashResult = trie.traverseChild("#")
+        let dollarResult = trie.traverseChild("$")
+        
+        #expect(mentionResult != nil)
+        #expect(hashResult != nil)
+        #expect(dollarResult != nil)
+    }
+    
+    @Test func testTraverseChildAfterMerging() {
         var trie1 = ArrayTrie<String>()
         var trie2 = ArrayTrie<String>()
         
-        trie1.set(["user"], value: "USER1")
-        trie1.set(["use"], value: "USE1")
+        trie1.set(["apple"], value: "APPLE1")
+        trie1.set(["banana"], value: "BANANA1")
         
-        trie2.set(["user"], value: "USER2")
-        trie2.set(["us"], value: "US2")
+        trie2.set(["apricot"], value: "APRICOT2")
+        trie2.set(["cherry"], value: "CHERRY2")
         
-        let merged = trie1.merging(with: trie2) { a, b in "\(a)+\(b)" }
-        let results = merged.getKeyValuesAlongPath("user")
-        let resultDict = Dictionary(uniqueKeysWithValues: results)
+        let merged = trie1.merging(with: trie2) { a, b in a }
+        let result = merged.traverseChild("a")
         
-        #expect(resultDict["user"] == "USER1+USER2")
-        #expect(resultDict["use"] == "USE1")
-        #expect(resultDict["us"] == "US2")
-        #expect(results.count == 3)
+        #expect(result != nil)
+        if let subtrie = result {
+            #expect(!subtrie.isEmpty())
+        }
     }
     
-    @Test func testGetKeyValuesAlongPathLongPath() {
+    @Test func testTraverseChildMultipleTypes() {
+        var intTrie = ArrayTrie<Int>()
+        var stringTrie = ArrayTrie<String>()
+        
+        intTrie.set(["number"], value: 42)
+        intTrie.set(["negative"], value: -1)
+        
+        stringTrie.set(["name"], value: "John")
+        stringTrie.set(["null"], value: "NULL")
+        
+        let intResult = intTrie.traverseChild("n")
+        let stringResult = stringTrie.traverseChild("n")
+        
+        #expect(intResult != nil)
+        #expect(stringResult != nil)
+    }
+    
+    // MARK: - GetAllChildCharacters Tests
+    
+    @Test func testGetAllChildCharactersBasic() {
         var trie = ArrayTrie<String>()
         
-        // Create progressively longer keys
-        let longKey = "verylongkeyfortesting"
-        for i in 1...longKey.count {
-            let key = String(longKey.prefix(i))
-            trie.set([key], value: "VALUE_\(i)")
-        }
+        // Set up the trie with keys starting with different characters
+        trie.set(["apple"], value: "APPLE")
+        trie.set(["banana"], value: "BANANA")
+        trie.set(["cherry"], value: "CHERRY")
+        trie.set(["apricot"], value: "APRICOT")
         
-        let results = trie.getKeyValuesAlongPath(longKey)
-        #expect(results.count == longKey.count)
+        let characters = trie.getAllChildCharacters()
         
-        // Verify all prefixes are included
-        let resultDict = Dictionary(uniqueKeysWithValues: results)
-        for i in 1...longKey.count {
-            let key = String(longKey.prefix(i))
-            #expect(resultDict[key] == "VALUE_\(i)")
-        }
+        #expect(characters.count >= 3) // at least a, b, c
+        #expect(characters.contains("a"))
+        #expect(characters.contains("b"))
+        #expect(characters.contains("c"))
     }
     
-    @Test func testGetKeyValuesAlongPathPerformance() {
+    @Test func testGetAllChildCharactersEmpty() {
+        let trie = ArrayTrie<String>()
+        
+        let characters = trie.getAllChildCharacters()
+        
+        #expect(characters.isEmpty)
+    }
+    
+    @Test func testGetAllChildCharactersSingleKey() {
+        var trie = ArrayTrie<String>()
+        
+        trie.set(["test"], value: "TEST")
+        
+        let characters = trie.getAllChildCharacters()
+        
+        #expect(characters.count >= 1)
+        #expect(characters.contains("t"))
+    }
+    
+    @Test func testGetAllChildCharactersSpecialCharacters() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with special characters
+        trie.set(["@mention"], value: "MENTION")
+        trie.set(["#hashtag"], value: "HASHTAG")
+        trie.set(["$dollar"], value: "DOLLAR")
+        trie.set(["123number"], value: "NUMBER")
+        
+        let characters = trie.getAllChildCharacters()
+        
+        #expect(characters.contains("@"))
+        #expect(characters.contains("#"))
+        #expect(characters.contains("$"))
+        #expect(characters.contains("1"))
+    }
+    
+    @Test func testGetAllChildCharactersUnicode() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with Unicode characters
+        trie.set(["café"], value: "CAFE")
+        trie.set(["naïve"], value: "NAIVE")
+        trie.set(["résumé"], value: "RESUME")
+        trie.set(["🙂emoji"], value: "EMOJI")
+        
+        let characters = trie.getAllChildCharacters()
+        
+        #expect(characters.contains("c"))
+        #expect(characters.contains("n"))
+        #expect(characters.contains("r"))
+        #expect(characters.contains("🙂"))
+    }
+    
+    @Test func testGetAllChildCharactersDuplicates() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with keys that start with same character
+        trie.set(["apple"], value: "APPLE")
+        trie.set(["apricot"], value: "APRICOT")
+        trie.set(["avocado"], value: "AVOCADO")
+        
+        let characters = trie.getAllChildCharacters()
+        
+        // Should not contain duplicates
+        let uniqueCharacters = Array(Set(characters))
+        #expect(characters.count == uniqueCharacters.count)
+        
+        #expect(characters.contains("a"))
+    }
+    
+    @Test func testGetAllChildCharactersAfterDeletion() {
+        var trie = ArrayTrie<String>()
+        
+        trie.set(["apple"], value: "APPLE")
+        trie.set(["banana"], value: "BANANA")
+        trie.set(["cherry"], value: "CHERRY")
+        
+        var characters = trie.getAllChildCharacters()
+        let originalCount = characters.count
+        #expect(characters.contains("b"))
+        
+        // Delete banana
+        trie = trie.deleting(path: ["banana"])
+        characters = trie.getAllChildCharacters()
+        
+        // Should have fewer characters if 'b' was only from banana
+        #expect(characters.count <= originalCount)
+        
+        // Should still contain 'a' and 'c'
+        #expect(characters.contains("a"))
+        #expect(characters.contains("c"))
+    }
+    
+    @Test func testGetAllChildCharactersAfterMerging() {
+        var trie1 = ArrayTrie<String>()
+        var trie2 = ArrayTrie<String>()
+        
+        trie1.set(["apple"], value: "APPLE")
+        trie1.set(["banana"], value: "BANANA")
+        
+        trie2.set(["cherry"], value: "CHERRY")
+        trie2.set(["date"], value: "DATE")
+        
+        let merged = trie1.merging(with: trie2) { a, b in a }
+        let characters = merged.getAllChildCharacters()
+        
+        #expect(characters.contains("a"))
+        #expect(characters.contains("b"))
+        #expect(characters.contains("c"))
+        #expect(characters.contains("d"))
+    }
+    
+    @Test func testGetAllChildCharactersEmptyStringKeys() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with empty string key and regular keys
+        trie.set([""], value: "EMPTY")
+        trie.set(["test"], value: "TEST")
+        
+        let characters = trie.getAllChildCharacters()
+        
+        #expect(characters.contains("t"))
+        // Empty string should contribute its first character, but it's empty
+        // So we shouldn't see any additional character from the empty string key
+    }
+    
+    @Test func testGetAllChildCharactersPerformance() {
         var trie = ArrayTrie<Int>()
         
-        // Add many keys with common prefixes
+        // Add many keys with different starting characters
         for i in 0..<1000 {
-            let key = "prefix\(String(format: "%03d", i))"
+            let key = "key\(i % 26)_\(i)"
             trie.set([key], value: i)
         }
         
-        // Test searching along a path that has many matching prefixes
-        let results = trie.getKeyValuesAlongPath("prefix999")
+        let characters = trie.getAllChildCharacters()
         
-        // Should find all keys that are prefixes of "prefix999"
-        let resultDict = Dictionary(uniqueKeysWithValues: results)
-        #expect(resultDict["prefix999"] == 999)
+        // Should contain 'k' (from "key...")
+        #expect(characters.contains("k"))
         
-        // Count expected prefixes
-        var expectedCount = 0
-        for i in 0..<1000 {
-            let key = "prefix\(String(format: "%03d", i))"
-            if "prefix999".hasPrefix(key) {
-                expectedCount += 1
-            }
-        }
-        
-        #expect(results.count == expectedCount)
+        // Should not have too many duplicates
+        let uniqueCharacters = Array(Set(characters))
+        #expect(characters.count == uniqueCharacters.count)
     }
     
-    @Test func testGetKeyValuesAlongPathOrder() {
+    @Test func testGetAllChildCharactersOrder() {
         var trie = ArrayTrie<String>()
         
-        // Insert keys in specific order
-        trie.set(["c"], value: "C")
-        trie.set(["ca"], value: "CA")
-        trie.set(["car"], value: "CAR")
-        trie.set(["care"], value: "CARE")
+        // Insert in specific order
+        trie.set(["zebra"], value: "Z")
+        trie.set(["apple"], value: "A")
+        trie.set(["banana"], value: "B")
         
-        let results = trie.getKeyValuesAlongPath("care")
+        let characters = trie.getAllChildCharacters()
         
-        // All key-value pairs should be present regardless of insertion order
-        let resultDict = Dictionary(uniqueKeysWithValues: results)
-        #expect(resultDict["c"] == "C")
-        #expect(resultDict["ca"] == "CA")
-        #expect(resultDict["car"] == "CAR")
-        #expect(resultDict["care"] == "CARE")
-        #expect(results.count == 4)
+        // Should contain all characters regardless of insertion order
+        #expect(characters.contains("z"))
+        #expect(characters.contains("a"))
+        #expect(characters.contains("b"))
     }
     
-    @Test func testGetKeyValuesAlongPathComparisonWithGetValuesAlongPath() {
+    @Test func testGetAllChildCharactersMultipleTypes() {
+        var stringTrie = ArrayTrie<String>()
+        var intTrie = ArrayTrie<Int>()
+        
+        stringTrie.set(["string"], value: "STRING")
+        stringTrie.set(["text"], value: "TEXT")
+        
+        intTrie.set(["number"], value: 42)
+        intTrie.set(["negative"], value: -1)
+        
+        let stringChars = stringTrie.getAllChildCharacters()
+        let intChars = intTrie.getAllChildCharacters()
+        
+        #expect(stringChars.contains("s"))
+        #expect(stringChars.contains("t"))
+        
+        #expect(intChars.contains("n"))
+    }
+    
+    @Test func testGetAllChildCharactersConsistency() {
         var trie = ArrayTrie<String>()
         
-        // Set up the trie
-        trie.set(["t"], value: "T")
-        trie.set(["te"], value: "TE")
         trie.set(["test"], value: "TEST")
+        trie.set(["temp"], value: "TEMP")
+        trie.set(["tree"], value: "TREE")
         
-        let keyValueResults = trie.getKeyValuesAlongPath("test")
-        let valueResults = trie.getValuesAlongPath("test")
+        let characters1 = trie.getAllChildCharacters()
+        let characters2 = trie.getAllChildCharacters()
         
-        // Both should return the same number of results
-        #expect(keyValueResults.count == valueResults.count)
-        
-        // Values should match between both methods
-        let keyValueDict = Dictionary(uniqueKeysWithValues: keyValueResults)
-        let values = valueResults.map { $0.1 }
-        
-        #expect(values.contains(keyValueDict["t"]!))
-        #expect(values.contains(keyValueDict["te"]!))
-        #expect(values.contains(keyValueDict["test"]!))
+        // Should be consistent across calls
+        #expect(characters1.count == characters2.count)
+        #expect(Set(characters1) == Set(characters2))
     }
+    
 }
