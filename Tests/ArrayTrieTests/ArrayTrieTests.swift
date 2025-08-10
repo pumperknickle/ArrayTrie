@@ -716,6 +716,36 @@ import TrieDictionary
         }
     }
     
+    @Test func testGetValuesAlongPathsResultingTries() {
+        var trie = ArrayTrie<String>()
+        
+        trie.set(["test"], value: "test")
+        trie.set(["te"], value: "te")
+        trie.set(["tes"], value: "tes")
+        trie.set(["test", "foo"], value: "test,foo")
+        trie.set(["test", "fo"], value: "test,fo")
+        trie.set(["te", "foe"], value: "te,foe")
+        trie.set(["tes", "far"], value: "tes,far")
+        
+        let pathValuesAndTries = trie.getValuesAlongPath("test")
+        let values = pathValuesAndTries.map  { $0.1 }
+        #expect(values.contains("test"))
+        #expect(values.contains("te"))
+        #expect(values.contains("tes"))
+        for pathValueAndTrie in pathValuesAndTries {
+            if pathValueAndTrie.1 == "test" {
+                #expect(pathValueAndTrie.0.get(["foo"]) == "test,foo")
+                #expect(pathValueAndTrie.0.get(["fo"]) == "test,fo")
+            }
+            if pathValueAndTrie.1 == "te" {
+                #expect(pathValueAndTrie.0.get(["foe"]) == "te,foe")
+            }
+            if pathValueAndTrie.1 == "tes" {
+                #expect(pathValueAndTrie.0.get(["far"]) == "tes,far")
+            }
+        }
+    }
+    
     @Test func testTraverseStringPathExactMatchVsPrefix() {
         var trie = ArrayTrie<String>()
         
