@@ -2609,4 +2609,116 @@ import TrieDictionary
         #expect(Set(characters1) == Set(characters2))
     }
     
+    // MARK: - GetAllChildKeys Tests
+    
+    @Test func testGetAllChildKeysBasic() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with different keys
+        trie.set(["users"], value: "USERS")
+        trie.set(["admins"], value: "ADMINS")
+        trie.set(["guests"], value: "GUESTS")
+        
+        let keys = trie.getAllChildKeys()
+        
+        #expect(keys.count == 3)
+        #expect(keys.contains("users"))
+        #expect(keys.contains("admins"))
+        #expect(keys.contains("guests"))
+    }
+    
+    @Test func testGetAllChildKeysEmpty() {
+        let trie = ArrayTrie<String>()
+        
+        let keys = trie.getAllChildKeys()
+        
+        #expect(keys.isEmpty)
+    }
+    
+    @Test func testGetAllChildKeysSingleKey() {
+        var trie = ArrayTrie<String>()
+        
+        trie.set(["onlykey"], value: "VALUE")
+        
+        let keys = trie.getAllChildKeys()
+        
+        #expect(keys.count == 1)
+        #expect(keys.contains("onlykey"))
+    }
+    
+    @Test func testGetAllChildKeysWithEmptyString() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with empty string key and regular keys
+        trie.set([""], value: "EMPTY")
+        trie.set(["test"], value: "TEST")
+        
+        let keys = trie.getAllChildKeys()
+        
+        #expect(keys.count == 2)
+        #expect(keys.contains(""))
+        #expect(keys.contains("test"))
+    }
+    
+    @Test func testGetAllChildKeysAfterDeletion() {
+        var trie = ArrayTrie<String>()
+        
+        trie.set(["apple"], value: "APPLE")
+        trie.set(["banana"], value: "BANANA")
+        trie.set(["cherry"], value: "CHERRY")
+        
+        var keys = trie.getAllChildKeys()
+        #expect(keys.count == 3)
+        #expect(keys.contains("banana"))
+        
+        // Delete banana
+        trie = trie.deleting(path: ["banana"])
+        
+        keys = trie.getAllChildKeys()
+        #expect(keys.count == 2)
+        #expect(!keys.contains("banana"))
+        #expect(keys.contains("apple"))
+        #expect(keys.contains("cherry"))
+    }
+    
+    @Test func testGetAllChildKeysWithNestedPaths() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up the trie with nested paths
+        trie.set(["users", "john"], value: "JOHN")
+        trie.set(["users", "jane"], value: "JANE")
+        trie.set(["admins", "bob"], value: "BOB")
+        
+        // Root level should have users and admins
+        let rootKeys = trie.getAllChildKeys()
+        #expect(rootKeys.count == 2)
+        #expect(rootKeys.contains("users"))
+        #expect(rootKeys.contains("admins"))
+        
+        // Traverse to users subtrie and check its keys
+        let usersSubtrie = trie.traverse(["users"])
+        #expect(usersSubtrie != nil)
+        if let usersSubtrie = usersSubtrie {
+            let userKeys = usersSubtrie.getAllChildKeys()
+            #expect(userKeys.count == 2)
+            #expect(userKeys.contains("john"))
+            #expect(userKeys.contains("jane"))
+        }
+    }
+    
+    @Test func testGetAllChildKeysConsistency() {
+        var trie = ArrayTrie<String>()
+        
+        trie.set(["test"], value: "TEST")
+        trie.set(["temp"], value: "TEMP")
+        trie.set(["tree"], value: "TREE")
+        
+        let keys1 = trie.getAllChildKeys()
+        let keys2 = trie.getAllChildKeys()
+        
+        // Should be consistent across calls
+        #expect(keys1.count == keys2.count)
+        #expect(Set(keys1) == Set(keys2))
+    }
+    
 }

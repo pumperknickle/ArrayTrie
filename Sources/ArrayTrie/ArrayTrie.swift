@@ -177,6 +177,10 @@ public struct ArrayTrie<Value> {
         return children.getAllChildCharacters()
     }
     
+    public func getAllChildKeys() -> [String] {
+        return children.keys()
+    }
+    
     /**
      * Creates a new trie with the specified path deleted.
      * @param path An array of string segments forming the path to delete
