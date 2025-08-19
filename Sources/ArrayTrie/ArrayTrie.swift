@@ -181,6 +181,10 @@ public struct ArrayTrie<Value> {
         return children.keys()
     }
     
+    public func getChildPrefix(char: Character) -> String? {
+        return children.getChildPrefix(char)
+    }
+    
     /**
      * Creates a new trie with the specified path deleted.
      * @param path An array of string segments forming the path to delete
