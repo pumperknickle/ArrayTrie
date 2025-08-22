@@ -2721,4 +2721,204 @@ import TrieDictionary
         #expect(Set(keys1) == Set(keys2))
     }
     
+    // MARK: - getAllValues Tests
+    
+    @Test func testGetAllValuesEmpty() {
+        let trie = ArrayTrie<String>()
+        let values = trie.getAllValues()
+        #expect(values.isEmpty)
+    }
+    
+    @Test func testGetAllValuesRootOnly() {
+        var trie = ArrayTrie<String>()
+        trie.set([], value: "root")
+        
+        let values = trie.getAllValues()
+        #expect(values.count == 1)
+        #expect(values[0] == "root")
+    }
+    
+    @Test func testGetAllValuesSinglePath() {
+        var trie = ArrayTrie<String>()
+        trie.set(["users", "john"], value: "John Doe")
+        
+        let values = trie.getAllValues()
+        #expect(values.count == 1)
+        #expect(values[0] == "John Doe")
+    }
+    
+    @Test func testGetAllValuesMultiplePaths() {
+        var trie = ArrayTrie<String>()
+        trie.set(["users", "john"], value: "John Doe")
+        trie.set(["users", "jane"], value: "Jane Smith")
+        trie.set(["admins", "alice"], value: "Alice Admin")
+        
+        let values = trie.getAllValues()
+        let valueSet = Set(values)
+        
+        #expect(values.count == 3)
+        #expect(valueSet == Set(["John Doe", "Jane Smith", "Alice Admin"]))
+    }
+    
+    @Test func testGetAllValuesWithRootAndChildren() {
+        var trie = ArrayTrie<String>()
+        trie.set([], value: "root")
+        trie.set(["users", "john"], value: "John Doe")
+        trie.set(["users", "jane"], value: "Jane Smith")
+        
+        let values = trie.getAllValues()
+        let valueSet = Set(values)
+        
+        #expect(values.count == 3)
+        #expect(valueSet == Set(["root", "John Doe", "Jane Smith"]))
+    }
+    
+    @Test func testGetAllValuesNestedPaths() {
+        var trie = ArrayTrie<String>()
+        trie.set(["a"], value: "A")
+        trie.set(["a", "b"], value: "AB")
+        trie.set(["a", "b", "c"], value: "ABC")
+        trie.set(["a", "x"], value: "AX")
+        
+        let values = trie.getAllValues()
+        let valueSet = Set(values)
+        
+        #expect(values.count == 4)
+        #expect(valueSet == Set(["A", "AB", "ABC", "AX"]))
+    }
+    
+    @Test func testGetAllValuesAfterDeletion() {
+        var trie = ArrayTrie<String>()
+        trie.set(["users", "john"], value: "John Doe")
+        trie.set(["users", "jane"], value: "Jane Smith")
+        trie.set(["admins", "alice"], value: "Alice Admin")
+        
+        // Delete one path
+        trie = trie.deleting(path: ["users", "john"])
+        
+        let values = trie.getAllValues()
+        let valueSet = Set(values)
+        
+        #expect(values.count == 2)
+        #expect(valueSet == Set(["Jane Smith", "Alice Admin"]))
+    }
+    
+    @Test func testGetAllValuesAfterMerging() {
+        var trie1 = ArrayTrie<String>()
+        trie1.set(["users", "john"], value: "John")
+        trie1.set(["users", "jane"], value: "Jane")
+        
+        var trie2 = ArrayTrie<String>()
+        trie2.set(["users", "bob"], value: "Bob")
+        trie2.set(["admins", "alice"], value: "Alice")
+        
+        let mergedTrie = trie1.merging(with: trie2) { first, second in
+            return first + "-" + second
+        }
+        
+        let values = mergedTrie.getAllValues()
+        let valueSet = Set(values)
+        
+        #expect(values.count == 4)
+        #expect(valueSet == Set(["John", "Jane", "Bob", "Alice"]))
+    }
+    
+    @Test func testGetAllValuesWithConflictMerging() {
+        var trie1 = ArrayTrie<String>()
+        trie1.set(["users", "john"], value: "John1")
+        
+        var trie2 = ArrayTrie<String>()
+        trie2.set(["users", "john"], value: "John2")
+        
+        let mergedTrie = trie1.merging(with: trie2) { first, second in
+            return first + "-" + second
+        }
+        
+        let values = mergedTrie.getAllValues()
+        
+        #expect(values.count == 1)
+        #expect(values[0] == "John1-John2")
+    }
+    
+    @Test func testGetAllValuesWithDifferentTypes() {
+        var trie = ArrayTrie<Int>()
+        trie.set(["numbers", "one"], value: 1)
+        trie.set(["numbers", "two"], value: 2)
+        trie.set(["numbers", "three"], value: 3)
+        
+        let values = trie.getAllValues()
+        let valueSet = Set(values)
+        
+        #expect(values.count == 3)
+        #expect(valueSet == Set([1, 2, 3]))
+    }
+    
+    @Test func testGetAllValuesEmptyStringsInPath() {
+        var trie = ArrayTrie<String>()
+        trie.set(["", "empty"], value: "EmptyPrefix")
+        trie.set(["empty", ""], value: "EmptySuffix")
+        trie.set(["normal", "path"], value: "Normal")
+        
+        let values = trie.getAllValues()
+        let valueSet = Set(values)
+        
+        #expect(values.count == 3)
+        #expect(valueSet == Set(["EmptyPrefix", "EmptySuffix", "Normal"]))
+    }
+    
+    @Test func testGetAllValuesPerformanceLargeTrie() {
+        var trie = ArrayTrie<String>()
+        
+        // Create a large trie with 1000 values
+        for i in 0..<1000 {
+            trie.set(["level1", "level2", "item\(i)"], value: "Value\(i)")
+        }
+        
+        let values = trie.getAllValues()
+        
+        #expect(values.count == 1000)
+        
+        // Verify all values are unique
+        let valueSet = Set(values)
+        #expect(valueSet.count == 1000)
+        
+        // Verify some sample values exist
+        #expect(valueSet.contains("Value0"))
+        #expect(valueSet.contains("Value500"))
+        #expect(valueSet.contains("Value999"))
+    }
+    
+    @Test func testGetAllValuesConsistency() {
+        var trie = ArrayTrie<String>()
+        trie.set(["a"], value: "A")
+        trie.set(["b"], value: "B")
+        trie.set(["c"], value: "C")
+        
+        // Multiple calls should return consistent results
+        let values1 = trie.getAllValues()
+        let values2 = trie.getAllValues()
+        
+        #expect(Set(values1) == Set(values2))
+        #expect(values1.count == values2.count)
+    }
+    
+    @Test func testGetAllValuesImmutability() {
+        var originalTrie = ArrayTrie<String>()
+        originalTrie.set(["test"], value: "Original")
+        
+        let originalValues = originalTrie.getAllValues()
+        
+        // Modify the trie
+        originalTrie.set(["new"], value: "New")
+        
+        // Original values should not be affected
+        #expect(originalValues.count == 1)
+        #expect(originalValues[0] == "Original")
+        
+        // New values should include both
+        let newValues = originalTrie.getAllValues()
+        #expect(newValues.count == 2)
+        #expect(Set(newValues) == Set(["Original", "New"]))
+    }
+    
 }

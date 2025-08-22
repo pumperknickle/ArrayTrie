@@ -227,6 +227,29 @@ public struct ArrayTrie<Value> {
             return partialResult.merging(with: next, mergeRule: mergeRule)
         }
     }
+    
+    public func getAllValues() -> [Value] {
+        var values = [Value]()
+        collectAllValues(into: &values)
+        return values
+    }
+    
+    /**
+     * Private helper method that efficiently collects all values by using an inout array parameter.
+     * This avoids creating temporary arrays and reduces memory allocations.
+     * @param values The array to append values to
+     */
+    private func collectAllValues(into values: inout [Value]) {
+        // Add root value if it exists
+        if let rootValue = rootValue {
+            values.append(rootValue)
+        }
+        
+        // Recursively collect values from all child nodes
+        for child in children.values() {
+            child.collectAllValues(into: &values)
+        }
+    }
 }
 
 /**
@@ -629,6 +652,33 @@ final class ArrayTrieNode<Value> {
         
         // Child was updated, update this node accordingly
         return with(child: firstValue, node: childResult)
+    }
+    
+    /**
+     * Retrieves all values stored in this node and its descendants.
+     * @return An array containing all values in the subtree rooted at this node
+     */
+    func getAllValues() -> [Value] {
+        var values = [Value]()
+        collectAllValues(into: &values)
+        return values
+    }
+    
+    /**
+     * Private helper method that efficiently collects all values by using an inout array parameter.
+     * This avoids creating temporary arrays and reduces memory allocations.
+     * @param values The array to append values to
+     */
+    func collectAllValues(into values: inout [Value]) {
+        // Add this node's value if it exists
+        if let value = value {
+            values.append(value)
+        }
+        
+        // Recursively collect values from all child nodes
+        for child in children.values() {
+            child.collectAllValues(into: &values)
+        }
     }
 }
 
