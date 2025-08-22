@@ -42,6 +42,126 @@ import TrieDictionary
         #expect(trie.get(["users", "john"]) == "Johnny")
     }
     
+    @Test func testGetValuesOfKeysThatDontStartWith() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up test data
+        trie.set(["apple", "red"], value: "Red Apple")
+        trie.set(["apple", "green"], value: "Green Apple")
+        trie.set(["banana", "yellow"], value: "Yellow Banana")
+        trie.set(["cherry", "red"], value: "Red Cherry")
+        trie.set(["apricot", "orange"], value: "Orange Apricot")
+        
+        // Test with key "apple" - should get banana, cherry, apricot values
+        let notApple = trie.getValuesOfKeysThatDontStartWith(key: "apple")
+        #expect(Set(notApple) == Set(["Yellow Banana", "Red Cherry", "Orange Apricot"]))
+        
+        // Test with key "b" - should get apple, cherry, apricot values
+        let notB = trie.getValuesOfKeysThatDontStartWith(key: "b")
+        #expect(Set(notB) == Set(["Red Apple", "Green Apple", "Red Cherry", "Orange Apricot"]))
+        
+        // Test with key "cherry" - should get apple, banana, apricot values
+        let notCherry = trie.getValuesOfKeysThatDontStartWith(key: "cherry")
+        #expect(Set(notCherry) == Set(["Red Apple", "Green Apple", "Yellow Banana", "Orange Apricot"]))
+        
+        // Test with empty key - should return empty array
+        let emptyKey = trie.getValuesOfKeysThatDontStartWith(key: "")
+        #expect(emptyKey.isEmpty)
+        
+        // Test with non-existent prefix - should return all values
+        let nonExistent = trie.getValuesOfKeysThatDontStartWith(key: "zebra")
+        #expect(Set(nonExistent) == Set(["Red Apple", "Green Apple", "Yellow Banana", "Red Cherry", "Orange Apricot"]))
+    }
+    
+    @Test func testGetValuesOfKeysThatDontStartWithEdgeCases() {
+        var trie = ArrayTrie<String>()
+        
+        // Set up test data with exact matches and prefix scenarios
+        trie.set(["app"], value: "App Value")
+        trie.set(["apple"], value: "Apple Value") 
+        trie.set(["application"], value: "Application Value")
+        trie.set(["apply"], value: "Apply Value")
+        trie.set(["appy"], value: "Appy Value")
+        trie.set(["banana"], value: "Banana Value")
+        trie.set(["band"], value: "Band Value")
+        trie.set(["cat"], value: "Cat Value")
+        
+        // Test exact match - "app" should NOT exclude "apple", "application", "apply"
+        // because they don't start with "app" as a key, they start with different characters
+        let exactMatch = trie.getValuesOfKeysThatDontStartWith(key: "app")
+        #expect(Set(exactMatch) == Set(["Banana Value", "Band Value", "Cat Value"]))
+        
+        // Test prefix that matches multiple keys - "appl" should exclude "apple" and "application" 
+        let prefixMatch = trie.getValuesOfKeysThatDontStartWith(key: "appl")
+        #expect(Set(prefixMatch) == Set(["App Value", "Banana Value", "Band Value", "Cat Value", "Appy Value"]))
+        
+        // Test single character - "a" should exclude all "a*" keys
+        let singleChar = trie.getValuesOfKeysThatDontStartWith(key: "a")
+        #expect(Set(singleChar) == Set(["Banana Value", "Band Value", "Cat Value"]))
+        
+        // Test longer key than any stored - should return all values
+        let longerKey = trie.getValuesOfKeysThatDontStartWith(key: "applications")
+        #expect(Set(longerKey) == Set(["App Value", "Apple Value", "Application Value", "Apply Value", "Banana Value", "Band Value", "Cat Value", "Appy Value"]))
+    }
+    
+    @Test func testGetValuesOfKeysThatDontStartWithWithRootValues() {
+        var trie = ArrayTrie<String>()
+        
+        // Add root value and child values
+        trie.set([], value: "Root Value")
+        trie.set(["a"], value: "A Value")
+        trie.set(["ab"], value: "AB Value") 
+        trie.set(["b"], value: "B Value")
+        trie.set(["c"], value: "C Value")
+        
+        // Test with "a" - should get b, c values and root value (only initial root not returned)
+        let notA = trie.getValuesOfKeysThatDontStartWith(key: "a")
+        #expect(Set(notA) == Set(["Root Value", "B Value", "C Value"]))
+        
+        // Test with "ab" - should get everything except ab value, including root value
+        let notAB = trie.getValuesOfKeysThatDontStartWith(key: "ab")
+        #expect(Set(notAB) == Set(["Root Value", "A Value", "B Value", "C Value"]))
+    }
+    
+    @Test func testGetValuesOfKeysThatDontStartWithNestedPaths() {
+        var trie = ArrayTrie<String>()
+        
+        // Create nested structure where intermediate nodes have values
+        trie.set(["api"], value: "API Root")
+        trie.set(["api", "v1"], value: "API V1")
+        trie.set(["api", "v1", "users"], value: "API V1 Users")
+        trie.set(["api", "v2"], value: "API V2")
+        trie.set(["web"], value: "Web Root")
+        trie.set(["web", "admin"], value: "Web Admin")
+        
+        // Test with "api" - should exclude all api paths
+        let notAPI = trie.getValuesOfKeysThatDontStartWith(key: "api")
+        #expect(Set(notAPI) == Set(["Web Root", "Web Admin"]))
+        
+        // Test with "web" - should exclude all web paths  
+        let notWeb = trie.getValuesOfKeysThatDontStartWith(key: "web")
+        #expect(Set(notWeb) == Set(["API Root", "API V1", "API V1 Users", "API V2"]))
+        
+        // Test with partial match "ap" - should exclude api paths
+        let notAP = trie.getValuesOfKeysThatDontStartWith(key: "ap")
+        #expect(Set(notAP) == Set(["Web Root", "Web Admin"]))
+        
+        // Test with non-matching prefix - should return all
+        let notXYZ = trie.getValuesOfKeysThatDontStartWith(key: "xyz")
+        #expect(Set(notXYZ) == Set(["API Root", "API V1", "API V1 Users", "API V2", "Web Root", "Web Admin"]))
+    }
+    
+    @Test func testGetValuesOfKeysThatDontStartWithEmptyTrie() {
+        let trie = ArrayTrie<String>()
+        
+        // Empty trie should return empty array for any key
+        let result = trie.getValuesOfKeysThatDontStartWith(key: "anything")
+        #expect(result.isEmpty)
+        
+        let emptyResult = trie.getValuesOfKeysThatDontStartWith(key: "")
+        #expect(emptyResult.isEmpty)
+    }
+
     @Test func testMultiplePaths() {
         var trie = ArrayTrie<String>()
         

@@ -184,6 +184,35 @@ public struct ArrayTrie<Value> {
     public func getChildPrefix(char: Character) -> String? {
         return children.getChildPrefix(char)
     }
+
+    public func getValuesOfKeysThatDontStartWith(key: String) -> [Value] {
+        if key.isEmpty { return [] }
+        let firstCharOfKey = key.first!
+        var valuesToReturn = [Value]()
+        let childCharactersThatDontStarTWithFirstCharOfKey = getAllChildCharacters().filter { $0 != firstCharOfKey }
+        for childChar in childCharactersThatDontStarTWithFirstCharOfKey {
+            valuesToReturn.append(contentsOf: traverseChild(childChar)!.getAllValues())
+        }
+        guard let childPrefix = getChildPrefix(char: firstCharOfKey) else { return valuesToReturn }
+        guard let traversed = traverse(path: childPrefix) else { return valuesToReturn }
+        traversed.getValuesOfKeysThatDontStartWith(key: ArraySlice(key).dropFirst(childPrefix.count), values: &valuesToReturn)
+        return valuesToReturn
+    }
+    
+    public func getValuesOfKeysThatDontStartWith(key: ArraySlice<Character>, values: inout [Value]) {
+        if key.isEmpty { return }
+        if let value = rootValue {
+            values.append(value)
+        }
+        let firstCharOfKey = key.first!
+        let childCharactersThatDontStarTWithFirstCharOfKey = getAllChildCharacters().filter { $0 != firstCharOfKey }
+        for childChar in childCharactersThatDontStarTWithFirstCharOfKey {
+            values.append(contentsOf: traverseChild(childChar)!.getAllValues())
+        }
+        guard let childPrefix = getChildPrefix(char: firstCharOfKey) else { return }
+        guard let traversed = traverse(path: childPrefix) else { return }
+        traversed.getValuesOfKeysThatDontStartWith(key: key.dropFirst(childPrefix.count), values: &values)
+    }
     
     /**
      * Creates a new trie with the specified path deleted.
