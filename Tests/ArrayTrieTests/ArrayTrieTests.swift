@@ -521,6 +521,7 @@ import TrieDictionary
         if let subtrie = usersSubtrie {
             #expect(!subtrie.isEmpty())
             let keys = subtrie.children.keys()
+            #expect(subtrie.get([""]) == "All Users")
             #expect(keys.contains("-admin"))
         }
     }

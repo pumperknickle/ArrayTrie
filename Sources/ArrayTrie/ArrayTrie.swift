@@ -227,7 +227,7 @@ public struct ArrayTrie<Value> {
     
     public func traverse(path: String) -> Self? {
         let traversed = children.traverse(path)
-        return traversed.isEmpty ? nil : Self(rootValue: traversed[""]?.value, children: traversed)
+        return traversed.isEmpty ? nil : Self(rootValue: get([path]), children: traversed)
     }
     
     /**
