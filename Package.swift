@@ -5,6 +5,9 @@ import PackageDescription
 
 let package = Package(
     name: "ArrayTrie",
+    platforms: [
+        .macOS(.v10_15),
+    ],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
@@ -12,7 +15,7 @@ let package = Package(
             targets: ["ArrayTrie"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/pumperknickle/TrieDictionary.git", from: "0.0.9"),
+        .package(url: "https://github.com/treehauslabs/TrieDictionary.git", from: "1.0.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.

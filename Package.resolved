@@ -1,13 +1,13 @@
 {
-  "originHash" : "8f6560948d2a81f9537c02b153ba9907db413040b9c17201ca574227fc947dde",
+  "originHash" : "630f24f8792c7928a75a1b650795b58a465c465ce0c3544943d45905209de526",
   "pins" : [
     {
       "identity" : "triedictionary",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/pumperknickle/TrieDictionary.git",
+      "location" : "https://github.com/treehauslabs/TrieDictionary.git",
       "state" : {
-        "revision" : "982c39de89bd8981dc368c95ca291b4f95477611",
-        "version" : "0.0.9"
+        "revision" : "d94c9c4fb4245d1edf9b8ce3a8225d42400b97fe",
+        "version" : "1.0.0"
       }
     }
   ],

@@ -237,7 +237,7 @@ public struct ArrayTrie<Value> {
      * @return A new trie containing the merged result
      */
     public func merging(with other: ArrayTrie<Value>, mergeRule: (Value, Value) -> Value) -> ArrayTrie<Value> {
-        let mergedChildren = children.merge(other: other.children) { selfChild, otherChild in
+        let mergedChildren = children.merging(other: other.children) { selfChild, otherChild in
             selfChild.merging(with: otherChild, mergeRule: mergeRule)
         }
         
@@ -285,7 +285,7 @@ public struct ArrayTrie<Value> {
  * ArrayTrieNode - A node in the ArrayTrie structure.
  * Each node contains a prefix path, an optional value, and child nodes.
  */
-final class ArrayTrieNode<Value> {
+final class ArrayTrieNode<Value>: @unchecked Sendable {
     /// Type alias for the children map
     typealias ChildMap = TrieDictionary<ArrayTrieNode<Value>>
     
@@ -562,7 +562,7 @@ final class ArrayTrieNode<Value> {
             }
             
             // Merge children by combining both child maps
-            let mergedChildren = self.children.merge(other: other.children) { selfChildren, otherChildren in
+            let mergedChildren = self.children.merging(other: other.children) { selfChildren, otherChildren in
                 selfChildren.merging(with: otherChildren, mergeRule: mergeRule)
             }
             

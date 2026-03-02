@@ -98,7 +98,7 @@ public struct MemoryOptimizedArrayTrie<Value> {
  * - Avoiding unnecessary ArraySlice allocations
  * - Better memory packing
  */
-final class MemoryOptimizedArrayTrieNode<Value> {
+final class MemoryOptimizedArrayTrieNode<Value>: @unchecked Sendable {
     typealias ChildMap = TrieDictionary<MemoryOptimizedArrayTrieNode<Value>>
     
     // Store prefix as non-optional to avoid Optional overhead
@@ -323,7 +323,7 @@ public struct AlgorithmicOptimizedArrayTrie<Value> {
  * Algorithmically optimized node with iterative operations where possible
  * and better path matching strategies.
  */
-final class AlgorithmicOptimizedArrayTrieNode<Value> {
+final class AlgorithmicOptimizedArrayTrieNode<Value>: @unchecked Sendable {
     typealias ChildMap = TrieDictionary<AlgorithmicOptimizedArrayTrieNode<Value>>
     
     var prefix: [String]
@@ -465,7 +465,7 @@ public struct COWOptimizedArrayTrie<Value> {
     }
 }
 
-private final class COWStorage<Value> {
+private final class COWStorage<Value>: @unchecked Sendable {
     typealias ChildMap = TrieDictionary<COWArrayTrieNode<Value>>
     
     var children: ChildMap
@@ -498,7 +498,7 @@ private final class COWStorage<Value> {
     }
 }
 
-private final class COWArrayTrieNode<Value> {
+private final class COWArrayTrieNode<Value>: @unchecked Sendable {
     typealias ChildMap = TrieDictionary<COWArrayTrieNode<Value>>
     
     var prefix: [String]

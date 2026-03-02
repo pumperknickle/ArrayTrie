@@ -51,7 +51,7 @@ public struct SIMDOptimizedArrayTrie<Value> {
     }
 }
 
-final class SIMDOptimizedArrayTrieNode<Value> {
+final class SIMDOptimizedArrayTrieNode<Value>: @unchecked Sendable {
     typealias ChildMap = TrieDictionary<SIMDOptimizedArrayTrieNode<Value>>
     
     var prefix: [String]
